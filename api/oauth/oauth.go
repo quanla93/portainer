@@ -28,9 +28,8 @@ func NewService() Service {
 }
 
 // Authenticate takes an access code and exchanges it for an access token from portainer OAuthSettings token environment(endpoint).
-// On success, it will then return the username and token expiry time associated to authenticated user by fetching this information
-// from the resource server and matching it with the user identifier setting.
-func (Service) Authenticate(ctx context.Context, code string, configuration *portainer.OAuthSettings) (string, error) {
+// On success, it will then return the username, the full claim map, and error.
+func (Service) Authenticate(ctx context.Context, code string, configuration *portainer.OAuthSettings) (string, map[string]any, error) {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
 
@@ -38,7 +37,7 @@ func (Service) Authenticate(ctx context.Context, code string, configuration *por
 	if err != nil {
 		log.Error().Err(err).Msg("failed retrieving oauth token")
 
-		return "", err
+		return "", nil, err
 	}
 
 	idToken, err := GetIdToken(token)
@@ -50,7 +49,7 @@ func (Service) Authenticate(ctx context.Context, code string, configuration *por
 	if err != nil {
 		log.Error().Err(err).Msg("failed retrieving resource")
 
-		return "", err
+		return "", nil, err
 	}
 
 	maps.Copy(resource, idToken)
@@ -59,10 +58,10 @@ func (Service) Authenticate(ctx context.Context, code string, configuration *por
 	if err != nil {
 		log.Error().Err(err).Msg("failed retrieving username")
 
-		return "", err
+		return "", nil, err
 	}
 
-	return username, nil
+	return username, resource, nil
 }
 
 func GetOAuthToken(ctx context.Context, code string, configuration *portainer.OAuthSettings) (*oauth2.Token, error) {

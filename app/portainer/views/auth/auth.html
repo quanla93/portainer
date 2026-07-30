@@ -53,7 +53,7 @@
             </div>
 
             <!-- use internal auth button -->
-            <div class="form-group" ng-if="ctrl.state.showOAuthLogin && !ctrl.state.showStandardLogin">
+            <div class="form-group" ng-if="ctrl.state.showOAuthLogin && !ctrl.state.showStandardLogin && !ctrl.state.OAuthHideInternalAuth">
               <div class="col-sm-12" style="display: flex; justify-content: center">
                 <div class="btn btn-primary btn-md btn-block" style="margin-left: 2px" ng-click="ctrl.toggleStandardLogin()"> Use internal authentication </div>
               </div>

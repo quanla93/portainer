@@ -23,7 +23,7 @@ export async function init(edition: Edition) {
     [FeatureId.KUBESOLO]: Edition.BE,
     [FeatureId.ACTIVITY_AUDIT]: Edition.BE,
     [FeatureId.EXTERNAL_AUTH_LDAP]: Edition.BE,
-    [FeatureId.HIDE_INTERNAL_AUTH]: Edition.BE,
+    [FeatureId.HIDE_INTERNAL_AUTH]: Edition.CE,
     [FeatureId.HIDE_INTERNAL_AUTHENTICATION_PROMPT]: Edition.BE,
     [FeatureId.K8S_SETUP_DEFAULT]: Edition.BE,
     [FeatureId.RBAC_ROLES]: Edition.BE,

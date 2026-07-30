@@ -14,6 +14,8 @@ export default class OAuthSettingsController {
     Object.assign(this, { $scope, $async });
 
     this.limitedFeature = FeatureId.HIDE_INTERNAL_AUTH;
+    this.limitedProviderFeature = undefined;
+    this.isProviderLimitedToBE = false;
     this.limitedFeatureClass = 'limited-be';
 
     this.state = {
@@ -54,7 +56,7 @@ export default class OAuthSettingsController {
 
     this.state.overrideConfiguration = false;
 
-    if (!this.isLimitedToBE || providerId === 'custom') {
+    if (!this.isProviderLimitedToBE || providerId === 'custom') {
       this.settings.AuthorizationURI = provider.authUrl;
       this.settings.AccessTokenURI = provider.accessTokenUrl;
       this.settings.ResourceURI = provider.resourceUrl;
@@ -144,10 +146,6 @@ export default class OAuthSettingsController {
 
   $onInit() {
     this.isLimitedToBE = isLimitedToBE(this.limitedFeature);
-
-    if (this.isLimitedToBE) {
-      return;
-    }
 
     if (this.settings.RedirectURI === '') {
       this.settings.RedirectURI = window.location.origin + baseHref();

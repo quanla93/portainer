@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"regexp"
 
 	portainer "github.com/portainer/portainer/api"
 	"github.com/portainer/portainer/api/dataservices"
@@ -27,21 +28,21 @@ func (payload *oauthPayload) Validate(r *http.Request) error {
 	return nil
 }
 
-func (handler *Handler) authenticateOAuth(ctx context.Context, code string, settings *portainer.OAuthSettings) (string, error) {
+func (handler *Handler) authenticateOAuth(ctx context.Context, code string, settings *portainer.OAuthSettings) (string, map[string]any, error) {
 	if code == "" {
-		return "", errors.New("Invalid OAuth authorization code")
+		return "", nil, errors.New("Invalid OAuth authorization code")
 	}
 
 	if settings == nil {
-		return "", errors.New("Invalid OAuth configuration")
+		return "", nil, errors.New("Invalid OAuth configuration")
 	}
 
-	username, err := handler.OAuthService.Authenticate(ctx, code, settings)
+	username, claims, err := handler.OAuthService.Authenticate(ctx, code, settings)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return username, nil
+	return username, claims, nil
 }
 
 // @id ValidateOAuth
@@ -76,7 +77,7 @@ func (handler *Handler) validateOAuth(w http.ResponseWriter, r *http.Request) *h
 		return httperror.Forbidden("OAuth authentication is not enabled", errors.New("OAuth authentication is not enabled"))
 	}
 
-	username, err := handler.authenticateOAuth(r.Context(), payload.Code, &settings.OAuthSettings)
+	username, claims, err := handler.authenticateOAuth(r.Context(), payload.Code, &settings.OAuthSettings)
 	if err != nil {
 		log.Debug().Err(err).Msg("OAuth authentication error")
 
@@ -115,8 +116,119 @@ func (handler *Handler) validateOAuth(w http.ResponseWriter, r *http.Request) *h
 				return httperror.InternalServerError("Unable to persist team membership inside the database", err)
 			}
 		}
+	}
 
+	if err := handler.syncUserTeamsWithOAuthClaims(user, claims, &settings.OAuthSettings); err != nil {
+		log.Warn().Err(err).Msg("unable to automatically sync user teams with oauth")
 	}
 
 	return handler.writeToken(w, r, user, false, settings.ForceSecureCookies)
+}
+
+func (handler *Handler) syncUserTeamsWithOAuthClaims(user *portainer.User, claims map[string]any, settings *portainer.OAuthSettings) error {
+	if !settings.OAuthAutoMapTeamMemberships {
+		return nil
+	}
+
+	claimName := settings.TeamMemberships.OAuthClaimName
+	if claimName == "" {
+		return nil
+	}
+
+	claimValue, ok := claims[claimName]
+	if !ok {
+		return nil
+	}
+
+	var claimGroups []string
+	switch v := claimValue.(type) {
+	case string:
+		claimGroups = append(claimGroups, v)
+	case []any:
+		for _, item := range v {
+			if str, ok := item.(string); ok {
+				claimGroups = append(claimGroups, str)
+			}
+		}
+	case []string:
+		claimGroups = v
+	}
+
+	if len(claimGroups) == 0 {
+		return nil
+	}
+
+	userMemberships, err := handler.DataStore.TeamMembership().TeamMembershipsByUserID(user.ID)
+	if err != nil {
+		return err
+	}
+
+	assignedTeams := make(map[portainer.TeamID]portainer.TeamMembershipID)
+	for _, m := range userMemberships {
+		assignedTeams[m.TeamID] = m.ID
+	}
+
+	shouldBeInTeams := make(map[portainer.TeamID]bool)
+	matchedAnyRule := false
+
+	for _, mapping := range settings.TeamMemberships.OAuthClaimMappings {
+		if mapping.ClaimValRegex == "" || mapping.Team == 0 {
+			continue
+		}
+
+		re, err := regexp.Compile(mapping.ClaimValRegex)
+		if err != nil {
+			log.Warn().Err(err).Str("regex", mapping.ClaimValRegex).Msg("failed to compile oauth claim value regex")
+			continue
+		}
+
+		for _, group := range claimGroups {
+			if re.MatchString(group) {
+				shouldBeInTeams[mapping.Team] = true
+				matchedAnyRule = true
+			}
+		}
+	}
+
+	for _, mapping := range settings.TeamMemberships.OAuthClaimMappings {
+		teamID := mapping.Team
+		if _, shouldBeIn := shouldBeInTeams[teamID]; !shouldBeIn {
+			if membershipID, exists := assignedTeams[teamID]; exists {
+				err := handler.DataStore.TeamMembership().Delete(membershipID)
+				if err != nil {
+					log.Warn().Err(err).Msg("unable to remove user team membership")
+				}
+			}
+		}
+	}
+
+	for teamID := range shouldBeInTeams {
+		if _, exists := assignedTeams[teamID]; !exists {
+			membership := &portainer.TeamMembership{
+				UserID: user.ID,
+				TeamID: teamID,
+				Role:   portainer.TeamMember,
+			}
+			err := handler.DataStore.TeamMembership().Create(membership)
+			if err != nil {
+				log.Warn().Err(err).Msg("unable to automatically sync user team with oauth")
+			}
+		}
+	}
+
+	if !matchedAnyRule && settings.DefaultTeamID != 0 {
+		if _, exists := assignedTeams[settings.DefaultTeamID]; !exists {
+			membership := &portainer.TeamMembership{
+				UserID: user.ID,
+				TeamID: settings.DefaultTeamID,
+				Role:   portainer.TeamMember,
+			}
+			err := handler.DataStore.TeamMembership().Create(membership)
+			if err != nil {
+				log.Warn().Err(err).Msg("unable to add user to default team")
+			}
+		}
+	}
+
+	return nil
 }

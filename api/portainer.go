@@ -967,22 +967,37 @@ type (
 	// MembershipRole represents the role of a user within a team
 	MembershipRole int
 
+	// OAuthClaimMapping represents a mapping from a token claim to a Portainer team
+	OAuthClaimMapping struct {
+		ClaimValRegex string `json:"ClaimValRegex"`
+		Team          TeamID `json:"Team"`
+	}
+
+	// OAuthTeamMemberships represents OIDC/OAuth group sync mappings
+	OAuthTeamMemberships struct {
+		OAuthClaimName     string              `json:"OAuthClaimName"`
+		OAuthClaimMappings []OAuthClaimMapping `json:"OAuthClaimMappings"`
+	}
+
 	// OAuthSettings represents the settings used to authorize with an authorization server
 	OAuthSettings struct {
-		ClientID             string           `json:"ClientID"`
-		ClientSecret         string           `json:"ClientSecret,omitempty"`
-		AccessTokenURI       string           `json:"AccessTokenURI"`
-		AuthorizationURI     string           `json:"AuthorizationURI"`
-		ResourceURI          string           `json:"ResourceURI"`
-		RedirectURI          string           `json:"RedirectURI"`
-		UserIdentifier       string           `json:"UserIdentifier"`
-		Scopes               string           `json:"Scopes"`
-		OAuthAutoCreateUsers bool             `json:"OAuthAutoCreateUsers"`
-		DefaultTeamID        TeamID           `json:"DefaultTeamID"`
-		SSO                  bool             `json:"SSO"`
-		LogoutURI            string           `json:"LogoutURI"`
-		KubeSecretKey        []byte           `json:"KubeSecretKey"`
-		AuthStyle            oauth2.AuthStyle `json:"AuthStyle"`
+		ClientID                    string               `json:"ClientID"`
+		ClientSecret                string               `json:"ClientSecret,omitempty"`
+		AccessTokenURI              string               `json:"AccessTokenURI"`
+		AuthorizationURI            string               `json:"AuthorizationURI"`
+		ResourceURI                 string               `json:"ResourceURI"`
+		RedirectURI                 string               `json:"RedirectURI"`
+		UserIdentifier              string               `json:"UserIdentifier"`
+		Scopes                      string               `json:"Scopes"`
+		OAuthAutoCreateUsers        bool                 `json:"OAuthAutoCreateUsers"`
+		DefaultTeamID               TeamID               `json:"DefaultTeamID"`
+		SSO                         bool                 `json:"SSO"`
+		LogoutURI                   string               `json:"LogoutURI"`
+		KubeSecretKey               []byte               `json:"KubeSecretKey"`
+		AuthStyle                   oauth2.AuthStyle     `json:"AuthStyle"`
+		HideInternalAuth            bool                 `json:"HideInternalAuth"`
+		OAuthAutoMapTeamMemberships bool                 `json:"OAuthAutoMapTeamMemberships"`
+		TeamMemberships             OAuthTeamMemberships `json:"TeamMemberships"`
 	}
 
 	// Pair defines a key/value string pair
@@ -2053,7 +2068,7 @@ type (
 
 	// OAuthService represents a service used to authenticate users using OAuth
 	OAuthService interface {
-		Authenticate(ctx context.Context, code string, configuration *OAuthSettings) (string, error)
+		Authenticate(ctx context.Context, code string, configuration *OAuthSettings) (string, map[string]any, error)
 	}
 
 	// ReverseTunnelService represents a service used to manage reverse tunnel connections.

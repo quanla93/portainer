@@ -13,7 +13,6 @@ export const options = [
     description: 'Microsoft OAuth provider',
     value: 'microsoft',
     iconType: 'logo',
-    feature: FeatureId.HIDE_INTERNAL_AUTH,
   },
   {
     id: 'google',
@@ -22,7 +21,6 @@ export const options = [
     description: 'Google OAuth provider',
     value: 'google',
     iconType: 'logo',
-    feature: FeatureId.HIDE_INTERNAL_AUTH,
   },
   {
     id: 'github',
@@ -31,7 +29,6 @@ export const options = [
     description: 'Github OAuth provider',
     value: 'github',
     iconType: 'logo',
-    feature: FeatureId.HIDE_INTERNAL_AUTH,
   },
   {
     id: 'custom',

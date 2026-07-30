@@ -225,6 +225,8 @@ class AuthenticationController {
     try {
       const settings = await this.SettingsService.publicSettings();
       this.state.showOAuthLogin = settings.AuthenticationMethod === 3;
+      const hideInternalParam = this.URLHelper.getParameter('hideInternal');
+      this.state.OAuthHideInternalAuth = settings.OAuthHideInternalAuth && hideInternalParam !== 'false';
       this.state.showStandardLogin = !this.state.showOAuthLogin;
       this.state.OAuthLoginURI = settings.OAuthLoginURI;
       this.state.OAuthProvider = this.determineOauthProvider(settings.OAuthLoginURI);
