@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	portainer "github.com/portainer/portainer/api"
-	"github.com/portainer/portainer/api/docker"
 	"github.com/portainer/portainer/api/internal/registryutils"
 	"github.com/portainer/portainer/api/logs"
 	httperror "github.com/portainer/portainer/pkg/libhttp/error"
