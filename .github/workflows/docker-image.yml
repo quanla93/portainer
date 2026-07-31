@@ -5,13 +5,15 @@ on:
     branches:
       - develop
       - main
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
 
     steps:
@@ -50,7 +52,6 @@ jobs:
 
       - name: Build Go Server Binary
         run: |
-          # Build for linux/amd64
           make build-server PLATFORM=linux ARCH=amd64
 
       - name: Log in to GHCR
@@ -68,5 +69,25 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
           platforms: linux/amd64
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Portainer CE ${{ github.ref_name }}
+          body: |
+            ### Automated Release for ${{ github.ref_name }}
+
+            Docker Image: `ghcr.io/${{ github.repository }}:${{ github.ref_name }}`
+
+            Để chạy Portainer phiên bản này:
+            ```bash
+            docker run -d -p 9443:9443 --name portainer --restart=always \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              -v portainer_data:/data \
+              ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ```
+          draft: false
+          prerelease: false
