@@ -2462,6 +2462,8 @@ const (
 	_ WebhookType = iota
 	// ServiceWebhook is a webhook for restarting a docker service
 	ServiceWebhook
+	// ContainerWebhook is a webhook for recreating a docker container
+	ContainerWebhook
 )
 
 const (

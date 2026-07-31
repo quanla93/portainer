@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	portainer "github.com/portainer/portainer/api"
+	"github.com/portainer/portainer/api/docker"
 	"github.com/portainer/portainer/api/internal/registryutils"
 	"github.com/portainer/portainer/api/logs"
 	httperror "github.com/portainer/portainer/pkg/libhttp/error"
@@ -57,9 +58,33 @@ func (handler *Handler) webhookExecute(w http.ResponseWriter, r *http.Request) *
 	switch webhookType {
 	case portainer.ServiceWebhook:
 		return handler.executeServiceWebhook(w, endpoint, resourceID, registryID, imageTag)
+	case portainer.ContainerWebhook:
+		return handler.executeContainerWebhook(w, endpoint, resourceID, registryID, imageTag, webhook)
 	default:
 		return httperror.InternalServerError("Unsupported webhook type", errors.New("Webhooks for this resource are not currently supported"))
 	}
+}
+
+func (handler *Handler) executeContainerWebhook(
+	w http.ResponseWriter,
+	endpoint *portainer.Endpoint,
+	resourceID string,
+	registryID portainer.RegistryID,
+	imageTag string,
+	webhook *portainer.Webhook,
+) *httperror.HandlerError {
+	newContainer, err := handler.ContainerService.Recreate(context.Background(), endpoint, resourceID, true, imageTag, "")
+	if err != nil {
+		return httperror.InternalServerError("Error recreating container", err)
+	}
+
+	webhook.ResourceID = newContainer.ID
+	err = handler.DataStore.Webhook().Update(webhook.ID, webhook)
+	if err != nil {
+		log.Error().Err(err).Int("webhookId", int(webhook.ID)).Msg("cannot update webhook resource id")
+	}
+
+	return response.Empty(w)
 }
 
 func (handler *Handler) executeServiceWebhook(
