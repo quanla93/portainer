@@ -48,7 +48,7 @@ jobs:
 
       - name: Build Frontend Client
         run: |
-          make build-client
+          make build-client ENV=production
 
       - name: Build Go Server Binary
         run: |
