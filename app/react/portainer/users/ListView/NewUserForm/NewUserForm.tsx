@@ -1,7 +1,8 @@
 import { PlusIcon } from 'lucide-react';
-import { Form, Formik } from 'formik';
+import { Form, Formik, useField } from 'formik';
 
 import { useCurrentUser } from '@/react/hooks/useUser';
+import { SwitchField } from '@@/form-components/SwitchField';
 import { usePublicSettings } from '@/react/portainer/settings/queries';
 import { AuthenticationMethod } from '@/react/portainer/settings/types';
 import { Role } from '@/portainer/users/types';
@@ -46,13 +47,14 @@ export function NewUserForm() {
                 confirmPassword: '',
                 isAdmin: false,
                 teams: [],
+                isLocal: authMethod === AuthenticationMethod.Internal,
               }}
               validationSchema={validation}
               validateOnMount
               onSubmit={(values, { resetForm }) => {
                 createUserMutation.mutate(
                   {
-                    password: values.password,
+                    password: values.isLocal ? values.password : '',
                     username: values.username,
                     role: values.isAdmin ? Role.Admin : Role.Standard,
                     teams: values.teams,
@@ -69,11 +71,15 @@ export function NewUserForm() {
                 );
               }}
             >
-              {({ errors, isValid }) => (
+              {({ errors, isValid, values }) => (
                 <Form className="form-horizontal">
                   <UsernameField authMethod={authMethod} />
 
-                  {authMethod === AuthenticationMethod.Internal && (
+                  {authMethod !== AuthenticationMethod.Internal && (
+                    <LocalUserSwitch />
+                  )}
+
+                  {values.isLocal && (
                     <>
                       <PasswordField />
 
@@ -97,6 +103,26 @@ export function NewUserForm() {
             </Formik>
           </Widget.Body>
         </Widget>
+      </div>
+    </div>
+  );
+}
+
+function LocalUserSwitch() {
+  const [{ name, value }, , { setValue }] =
+    useField<FormValues['isLocal']>('isLocal');
+  return (
+    <div className="form-group">
+      <div className="col-sm-12">
+        <SwitchField
+          data-cy="user-localUserSwitch"
+          label="Local user"
+          tooltip="Toggle this on to create a local user with a password. If toggled off, the user will authenticate via the configured OAuth/LDAP provider."
+          checked={value}
+          onChange={(checked) => setValue(checked)}
+          name={name}
+          labelClass="col-sm-3 col-lg-2"
+        />
       </div>
     </div>
   );

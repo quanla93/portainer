@@ -84,13 +84,7 @@ func (handler *Handler) createUser(tx dataservices.DataStoreTx, payload userCrea
 		return nil, httperror.InternalServerError("Unable to retrieve settings from the database", err)
 	}
 
-	// When LDAP/OAuth is on, can only add users without password
-	if (settings.AuthenticationMethod == portainer.AuthenticationLDAP || settings.AuthenticationMethod == portainer.AuthenticationOAuth) && payload.Password != "" {
-		errMsg := "a user with password can not be created when authentication method is Oauth or LDAP"
-		return nil, httperror.BadRequest(errMsg, errors.New(errMsg))
-	}
-
-	if settings.AuthenticationMethod == portainer.AuthenticationInternal {
+	if settings.AuthenticationMethod == portainer.AuthenticationInternal || payload.Password != "" {
 		if !handler.passwordStrengthChecker.Check(payload.Password) {
 			return nil, httperror.BadRequest("Password does not meet the requirements", nil)
 		}

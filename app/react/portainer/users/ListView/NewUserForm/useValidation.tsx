@@ -25,6 +25,7 @@ export function useValidation(): SchemaOf<FormValues> {
           message: 'Username is already taken',
           test: (value) => users.every((u) => u.Username !== value),
         }),
+      isLocal: boolean().default(true),
       password: string().default(''),
       confirmPassword: string().default(''),
       isAdmin: boolean().default(false),
@@ -33,26 +34,49 @@ export function useValidation(): SchemaOf<FormValues> {
 
     if (authMethod === AuthenticationMethod.Internal) {
       return base.concat(
-        passwordValidation(settingsQuery.data?.RequiredPasswordLength)
+        passwordValidation(settingsQuery.data?.RequiredPasswordLength, true)
       );
     }
 
-    return base;
+    return base.concat(
+      passwordValidation(settingsQuery.data?.RequiredPasswordLength, false)
+    );
   }, [authMethod, settingsQuery.data?.RequiredPasswordLength, usersQuery.data]);
 }
 
-function passwordValidation(minLength: number | undefined = 12) {
+function passwordValidation(
+  minLength: number | undefined = 12,
+  isRequired = true
+) {
   return object({
-    password: string()
-      .required('Password is required')
-      .min(
-        minLength,
-        ({ value, min }) =>
-          `The password must be at least ${min} characters long. (${value.length}/${min})`
-      ),
-    confirmPassword: string().oneOf(
-      [ref('password'), null],
-      'Passwords must match'
-    ),
+    password: isRequired
+      ? string()
+          .required('Password is required')
+          .min(
+            minLength,
+            ({ value, min }) =>
+              `The password must be at least ${min} characters long. (${value.length}/${min})`
+          )
+      : string()
+          .optional()
+          .default('')
+          .test({
+            name: 'minLength',
+            message: `The password must be at least ${minLength} characters long.`,
+            test: (value) => !value || value.length >= (minLength ?? 12),
+          }),
+    confirmPassword: isRequired
+      ? string()
+          .required('Confirm password is required')
+          .oneOf([ref('password'), null], 'Passwords must match')
+      : string()
+          .default('')
+          .test({
+            name: 'match',
+            message: 'Passwords must match',
+            test: function (value) {
+              return !this.parent.password || value === this.parent.password;
+            },
+          }),
   });
 }

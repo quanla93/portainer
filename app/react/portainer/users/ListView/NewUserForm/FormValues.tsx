@@ -6,4 +6,5 @@ export interface FormValues {
   confirmPassword: string;
   isAdmin: boolean;
   teams: TeamId[];
+  isLocal: boolean;
 }

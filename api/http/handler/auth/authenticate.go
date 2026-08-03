@@ -94,7 +94,7 @@ func (handler *Handler) authenticate(rw http.ResponseWriter, r *http.Request) *h
 		handler.KubernetesClientFactory.ClearUserClientCache(strconv.Itoa(int(user.ID)))
 	}
 
-	if user != nil && isUserInitialAdmin(user) || settings.AuthenticationMethod == portainer.AuthenticationInternal {
+	if user != nil && (isUserInitialAdmin(user) || user.Password != "") || settings.AuthenticationMethod == portainer.AuthenticationInternal {
 		return handler.authenticateInternal(rw, r, user, payload.Password, settings.ForceSecureCookies)
 	}
 
