@@ -76,7 +76,11 @@ angular.module('portainer.app').controller('AccountController', [
       $scope.forceChangePassword = userDetails.forceChangePassword;
       $scope.isInitialAdmin = userDetails.ID === 1;
 
-      SettingsService.publicSettings()
+      UserService.user(userDetails.ID)
+        .then(function success(user) {
+          $scope.user = user;
+          return SettingsService.publicSettings();
+        })
         .then(function success(data) {
           $scope.AuthenticationMethod = data.AuthenticationMethod;
 
@@ -93,7 +97,7 @@ angular.module('portainer.app').controller('AccountController', [
           StateManager.setRequiredPasswordLength(data.RequiredPasswordLength);
         })
         .catch(function error(err) {
-          Notifications.error('Failure', err, 'Unable to retrieve application settings');
+          Notifications.error('Failure', err, 'Unable to retrieve user details or application settings');
         });
     }
 

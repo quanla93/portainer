@@ -1614,6 +1614,7 @@ type (
 		TokenIssueAt  int64             `json:"TokenIssueAt" example:"1"`
 		ThemeSettings UserThemeSettings `json:"ThemeSettings"`
 		UseCache      bool              `json:"UseCache" example:"true"`
+		UserHasPassword bool            `json:"UserHasPassword"`
 
 		// Deprecated fields
 

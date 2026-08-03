@@ -27,6 +27,7 @@ export type User = {
     [endpointId: EnvironmentId]: AuthorizationMap;
   };
   UseCache: boolean;
+  UserHasPassword?: boolean;
   ThemeSettings: {
     color: ThemeColor;
   };
