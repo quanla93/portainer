@@ -33,13 +33,6 @@ func (handler *Handler) authenticateOAuth(ctx context.Context, code string, sett
 		return "", nil, errors.New("Invalid OAuth authorization code")
 	}
 
-	if code == "fake-google-code" {
-		claims := map[string]any{
-			"email": "google_user@example.com",
-		}
-		return "google_user", claims, nil
-	}
-
 	if settings == nil {
 		return "", nil, errors.New("Invalid OAuth configuration")
 	}
