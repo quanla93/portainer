@@ -11,10 +11,10 @@ import (
 )
 
 type User struct {
-	ID       portainer.UserID `json:"Id" example:"1"`
-	Username string           `json:"Username" example:"bob"`
-	// User role (1 for administrator account and 2 for regular account)
-	Role portainer.UserRole `json:"Role" example:"1"`
+	ID              portainer.UserID   `json:"Id" example:"1"`
+	Username        string             `json:"Username" example:"bob"`
+	Role            portainer.UserRole `json:"Role" example:"1"`
+	UserHasPassword bool               `json:"UserHasPassword"`
 }
 
 // @id UserList
@@ -90,9 +90,10 @@ func (handler *Handler) userList(w http.ResponseWriter, r *http.Request) *httper
 
 func sanitizeUser(user portainer.User) User {
 	return User{
-		ID:       user.ID,
-		Username: user.Username,
-		Role:     user.Role,
+		ID:              user.ID,
+		Username:        user.Username,
+		Role:            user.Role,
+		UserHasPassword: user.Password != "",
 	}
 }
 
