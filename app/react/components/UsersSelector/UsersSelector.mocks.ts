@@ -25,6 +25,7 @@ export function createMockUser(id: number, username: string): UserViewModel {
     RoleName: 'user',
     Checked: false,
     AuthenticationMethod: '',
+    UserHasPassword: false,
     ThemeSettings: {
       color: 'auto',
     },

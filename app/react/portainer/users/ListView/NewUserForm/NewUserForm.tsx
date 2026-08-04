@@ -116,8 +116,8 @@ function LocalUserSwitch() {
       <div className="col-sm-12">
         <SwitchField
           data-cy="user-localUserSwitch"
-          label="Local user"
-          tooltip="Toggle this on to create a local user with a password. If toggled off, the user will authenticate via the configured OAuth/LDAP provider."
+          label="Internal user"
+          tooltip="Toggle this on to create an internal user with a password. If toggled off, the user will authenticate via the configured OAuth/LDAP provider."
           checked={value}
           onChange={(checked) => setValue(checked)}
           name={name}

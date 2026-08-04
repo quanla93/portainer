@@ -13,6 +13,7 @@ export function UserViewModel(data) {
   this.AuthenticationMethod = data.AuthenticationMethod;
   this.Checked = false;
   this.UseCache = data.UseCache;
+  this.UserHasPassword = data.UserHasPassword;
 }
 
 export function UserTokenModel(data) {
