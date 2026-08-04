@@ -24,6 +24,7 @@ var (
 )
 
 func hideFields(user *portainer.User) {
+	user.UserHasPassword = user.Password != ""
 	user.Password = ""
 }
 
