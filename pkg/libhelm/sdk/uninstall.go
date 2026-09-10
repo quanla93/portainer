@@ -28,7 +28,7 @@ func (hspm *HelmSDKPackageManager) Uninstall(uninstallOpts options.UninstallOpti
 
 	// Initialize action configuration with kubernetes config
 	actionConfig := new(action.Configuration)
-	err := hspm.initActionConfig(actionConfig, namespaceOrDefault(uninstallOpts.Namespace), uninstallOpts.KubernetesClusterAccess)
+	err := hspm.initActionConfig(actionConfig, namespaceOrDefault(uninstallOpts.Namespace), uninstallOpts.KubernetesClusterAccess, nil)
 	if err != nil {
 		// error is already logged in initActionConfig
 		return errors.Wrap(err, "failed to initialize helm configuration")
@@ -103,7 +103,7 @@ func (hspm *HelmSDKPackageManager) ForceRemoveRelease(uninstallOpts options.Unin
 		Msg("Force-removing release history (skipping resource deletion)")
 
 	actionConfig := new(action.Configuration)
-	err := hspm.initActionConfig(actionConfig, namespaceOrDefault(uninstallOpts.Namespace), uninstallOpts.KubernetesClusterAccess)
+	err := hspm.initActionConfig(actionConfig, namespaceOrDefault(uninstallOpts.Namespace), uninstallOpts.KubernetesClusterAccess, nil)
 	if err != nil {
 		return errors.Wrap(err, "failed to initialize helm configuration for force-remove")
 	}
@@ -128,7 +128,6 @@ func (hspm *HelmSDKPackageManager) ForceRemoveRelease(uninstallOpts options.Unin
 			log.Error().
 				Str("context", "HelmClient").
 				Str("release", uninstallOpts.Name).
-				Int("version", releaseV1.Version).
 				Err(err).
 				Msg("Failed to convert releaser version to v1 for force-remove, skipping deletion of this version")
 			continue

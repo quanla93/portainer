@@ -15,7 +15,7 @@ import { isArrayErrorType } from '@@/form-components/formikUtils';
 
 import { useNodeQuery } from '../../queries/useNodeQuery';
 import { useKubernetesEndpointsQuery } from '../../kubernetesEndpoint.service';
-import { getAvailability } from '../../nodeUtils';
+import { getAvailability, getRole } from '../../nodeUtils';
 import { confirmUpdateNode } from '../ConfirmUpdateNode';
 import { useUpdateNodeMutation } from '../../queries/useUpdateNodeMutation';
 import { useDrainNodeMutation } from '../../queries/useDrainNodeMutation';
@@ -25,7 +25,7 @@ import { NodeLabels } from './NodeLabels';
 import { NodeSummary } from './NodeSummary';
 import { NodeTaints } from './NodeTaints';
 import { NodeResourceReservation } from './NodeResourceReservation';
-import { NodeFormValues } from './types';
+import { NodeFormValues, defaultDrainOptions } from './types';
 import { createLabel, createTaint } from './nodeFormUtils';
 import { createValidationSchema } from './validation';
 
@@ -38,7 +38,11 @@ export function NodeDetails({ nodeName, environmentId }: Props) {
   const router = useRouter();
   const nodeQuery = useNodeQuery(environmentId, nodeName);
   const nodesAvailabilityQuery = useNodesQuery(environmentId, {
-    select: (nodes) => nodes.map(getAvailability),
+    select: (nodes) =>
+      nodes.map((node) => ({
+        availability: getAvailability(node),
+        role: getRole(node),
+      })),
   });
   const applicationsQuery = useApplications(environmentId, {
     nodeName,
@@ -72,9 +76,12 @@ export function NodeDetails({ nodeName, environmentId }: Props) {
   const containsPortainer = applications.some(
     (app) => app.Name === 'portainer'
   );
-  const hasDrainOperation = !!nodesAvailabilityQuery.data?.some(
-    (availability) => availability === 'Drain'
-  );
+  const activeWorkerCount =
+    nodesAvailabilityQuery.data?.filter(
+      (node) => node.role === 'Worker' && node.availability === 'Active'
+    ).length ?? 0;
+  const isLastWorkerNode =
+    getRole(nodeQuery.data) === 'Worker' && activeWorkerCount <= 1;
   return (
     <Formik
       initialValues={nodeFormValues}
@@ -82,8 +89,8 @@ export function NodeDetails({ nodeName, environmentId }: Props) {
       enableReinitialize
       validationSchema={createValidationSchema(
         isOnlyNode,
-        hasDrainOperation,
-        containsPortainer
+        containsPortainer,
+        isLastWorkerNode
       )}
     >
       <NodeDetailsForm
@@ -130,7 +137,7 @@ export function NodeDetails({ nodeName, environmentId }: Props) {
       node,
     });
     if (values.availability === 'Drain') {
-      await drainNodeMutation.mutateAsync();
+      await drainNodeMutation.mutateAsync(values.drainOptions);
     }
     notifySuccess('Success', 'Node updated successfully');
 
@@ -176,6 +183,10 @@ function NodeDetailsForm({
         error={errors.availability}
         onChangeAvailability={(availability) => {
           setFieldValue('availability', availability);
+        }}
+        drainOptions={values.drainOptions}
+        onChangeDrainOptions={(drainOptions) => {
+          setFieldValue('drainOptions', drainOptions);
         }}
         hasNodeWriteAccess={hasNodeWriteAccess}
       />
@@ -237,5 +248,6 @@ function getNodeFormValues(node: Node): NodeFormValues {
     availability,
     labels,
     taints,
+    drainOptions: defaultDrainOptions,
   };
 }

@@ -13,6 +13,7 @@ import (
 
 	portainer "github.com/portainer/portainer/api"
 	"github.com/portainer/portainer/api/dataservices"
+	"github.com/portainer/portainer/pkg/fips"
 	"github.com/rs/zerolog/log"
 
 	"github.com/patrickmn/go-cache"
@@ -45,6 +46,7 @@ type (
 	KubeClient struct {
 		cli                kubernetes.Interface
 		gatewayCLI         gatewaycliv1.GatewayV1Interface
+		metricsCli         metricsv.Interface
 		instanceID         string
 		mu                 sync.Mutex
 		isKubeAdmin        bool
@@ -197,13 +199,25 @@ func (factory *ClientFactory) CreateKubeClientFromKubeConfig(clusterID string, k
 		return nil, fmt.Errorf("failed to create gateway clientset for the given config: %w", err)
 	}
 
+	metricsCli, err := metricsv.NewForConfigAndClient(clientConfig, httpClient)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metrics clientset for the given config: %w", err)
+	}
+
 	return &KubeClient{
 		cli:                cli,
 		gatewayCLI:         gatewayCLI,
+		metricsCli:         metricsCli,
 		instanceID:         factory.instanceID,
 		isKubeAdmin:        IsKubeAdmin,
 		nonAdminNamespaces: NonAdminNamespaces,
 	}, nil
+}
+
+// GetMetricsClient returns the metrics clientset scoped to this KubeClient's credentials.
+// It is nil for privileged clients that are not built from a user kubeconfig.
+func (kcl *KubeClient) GetMetricsClient() metricsv.Interface {
+	return kcl.metricsCli
 }
 
 func (factory *ClientFactory) createCachedPrivilegedKubeClient(endpoint *portainer.Endpoint) (*KubeClient, error) {
@@ -254,9 +268,9 @@ func (factory *ClientFactory) CreateConfig(endpoint *portainer.Endpoint) (*rest.
 	case portainer.KubernetesLocalEnvironment:
 		return buildLocalConfig()
 	case portainer.AgentOnKubernetesEnvironment:
-		return factory.buildAgentConfig(endpoint)
+		return factory.buildAgentConfig(endpoint, fips.FIPSMode())
 	case portainer.EdgeAgentOnKubernetesEnvironment:
-		return factory.buildEdgeConfig(endpoint)
+		return factory.buildEdgeConfig(endpoint, fips.FIPSMode())
 	}
 	return nil, errors.New("unsupported environment type")
 }
@@ -308,18 +322,13 @@ func (rt *AgentHeaderRoundTripper) RoundTrip(req *http.Request) (*http.Response,
 	return rt.roundTripper.RoundTrip(req)
 }
 
-func (factory *ClientFactory) buildAgentConfig(endpoint *portainer.Endpoint) (*rest.Config, error) {
+func (factory *ClientFactory) buildAgentConfig(endpoint *portainer.Endpoint, fipsMode bool) (*rest.Config, error) {
 	var clientURL strings.Builder
 	if !strings.HasPrefix(endpoint.URL, "http") {
 		clientURL.WriteString("https://")
 	}
 	clientURL.WriteString(endpoint.URL)
 	clientURL.WriteString("/kubernetes")
-
-	signature, err := factory.signatureService.CreateSignature(portainer.PortainerAgentSignatureMessage)
-	if err != nil {
-		return nil, err
-	}
 
 	config, err := clientcmd.BuildConfigFromFlags(clientURL.String(), "")
 	if err != nil {
@@ -330,14 +339,23 @@ func (factory *ClientFactory) buildAgentConfig(endpoint *portainer.Endpoint) (*r
 	config.QPS = defaultKubeClientQPS
 	config.Burst = defaultKubeClientBurst
 
-	config.Wrap(func(rt http.RoundTripper) http.RoundTripper {
-		return NewAgentHeaderRoundTripper(signature, factory.signatureService.EncodedPublicKey(), rt)
-	})
+	// The agent verifies this signature unless it is running in FIPS mode, where it
+	// relies on mTLS instead. Skip sending it to match that behaviour.
+	if !fipsMode {
+		signature, err := factory.signatureService.CreateSignature(portainer.PortainerAgentSignatureMessage)
+		if err != nil {
+			return nil, err
+		}
+
+		config.Wrap(func(rt http.RoundTripper) http.RoundTripper {
+			return NewAgentHeaderRoundTripper(signature, factory.signatureService.EncodedPublicKey(), rt)
+		})
+	}
 
 	return config, nil
 }
 
-func (factory *ClientFactory) buildEdgeConfig(endpoint *portainer.Endpoint) (*rest.Config, error) {
+func (factory *ClientFactory) buildEdgeConfig(endpoint *portainer.Endpoint, fipsMode bool) (*rest.Config, error) {
 	tunnelAddr, err := factory.reverseTunnelService.TunnelAddr(endpoint)
 	if err != nil {
 		return nil, pkgerrors.Wrap(err, "failed to activate the chisel reverse tunnel. check if the tunnel port is open at the portainer instance")
@@ -349,18 +367,22 @@ func (factory *ClientFactory) buildEdgeConfig(endpoint *portainer.Endpoint) (*re
 		return nil, err
 	}
 
-	signature, err := factory.signatureService.CreateSignature(portainer.PortainerAgentSignatureMessage)
-	if err != nil {
-		return nil, err
-	}
-
 	config.Insecure = true
 	config.QPS = defaultKubeClientQPS
 	config.Burst = defaultKubeClientBurst
 
-	config.Wrap(func(rt http.RoundTripper) http.RoundTripper {
-		return NewAgentHeaderRoundTripper(signature, factory.signatureService.EncodedPublicKey(), rt)
-	})
+	// The agent verifies this signature unless it is running in FIPS mode, where it
+	// relies on mTLS instead. Skip sending it to match that behaviour.
+	if !fipsMode {
+		signature, err := factory.signatureService.CreateSignature(portainer.PortainerAgentSignatureMessage)
+		if err != nil {
+			return nil, err
+		}
+
+		config.Wrap(func(rt http.RoundTripper) http.RoundTripper {
+			return NewAgentHeaderRoundTripper(signature, factory.signatureService.EncodedPublicKey(), rt)
+		})
+	}
 
 	return config, nil
 }

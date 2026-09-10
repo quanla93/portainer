@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 
 import { server } from '@/setup-tests/server';
+import { suppressConsoleLogs } from '@/setup-tests/suppress-console';
 import { withTestQueryProvider } from '@/react/test-utils/withTestQuery';
 import { withUserProvider } from '@/react/test-utils/withUserProvider';
 import { withTestRouter } from '@/react/test-utils/withRouter';
@@ -21,6 +22,8 @@ vi.mock('@uirouter/react', async (importOriginal) => ({
   })),
 }));
 
+vi.mock('recharts');
+
 const podMetricsSuccess = {
   timestamp: '2024-01-01T00:00:00Z',
   containers: [
@@ -39,17 +42,15 @@ function addBaseHandlers() {
     ),
     http.get('/api/endpoints/1/kubernetes/api/v1/nodes/node1', () =>
       HttpResponse.json({ status: { allocatable: { cpu: '4' } } })
+    ),
+    http.get('/api/kubernetes/1/metrics/pods/namespace/default/my-pod', () =>
+      HttpResponse.json(podMetricsSuccess)
     )
   );
 }
 
 beforeEach(() => {
-  vi.useFakeTimers();
   addBaseHandlers();
-});
-
-afterEach(() => {
-  vi.useRealTimers();
 });
 
 function renderComponent() {
@@ -60,7 +61,7 @@ function renderComponent() {
 }
 
 describe('ApplicationStatsView', () => {
-  it('renders the page header "Application stats"', () => {
+  it('renders the page header "Application stats"', async () => {
     server.use(
       http.get('/api/kubernetes/1/metrics/pods/namespace/default/my-pod', () =>
         HttpResponse.json(podMetricsSuccess)
@@ -70,9 +71,16 @@ describe('ApplicationStatsView', () => {
     renderComponent();
 
     expect(screen.getByText('Application stats')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('combobox', { name: /refresh rate/i })
+      ).toBeInTheDocument();
+    });
   });
 
   it('shows "Unable to retrieve container metrics" panel when pod metrics fetch returns 500', async () => {
+    const restoreConsole = suppressConsoleLogs();
     server.use(
       http.get('/api/kubernetes/1/metrics/pods/namespace/default/my-pod', () =>
         HttpResponse.json({ message: 'Internal Server Error' }, { status: 500 })
@@ -86,6 +94,8 @@ describe('ApplicationStatsView', () => {
         screen.getByText('Unable to retrieve container metrics')
       ).toBeInTheDocument();
     });
+
+    restoreConsole();
   });
 
   it('shows the refresh rate select when metrics are available', async () => {

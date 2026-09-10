@@ -5,6 +5,8 @@ import { AppType, DeploymentType } from '../../types';
 
 export interface ApplicationRowData extends Application {
   KubernetesApplications?: Array<Application>;
+  // the namespace the Helm release is stored in, which isn't always the namespace of the workloads it deploys
+  HelmReleaseNamespace?: string;
 }
 
 export interface Application {
@@ -15,6 +17,7 @@ export interface Application {
   Services?: Array<Service>;
   CreationDate: string;
   ApplicationOwner?: string;
+  StackId?: string;
   StackName?: string;
   StackKind?: string;
   ResourcePool: string;

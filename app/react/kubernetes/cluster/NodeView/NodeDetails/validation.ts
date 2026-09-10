@@ -1,4 +1,4 @@
-import { array, string, boolean, object } from 'yup';
+import { array, string, boolean, number, object } from 'yup';
 
 import { buildUniquenessTest } from '@@/form-components/validate-unique';
 
@@ -96,10 +96,23 @@ const taintSchema = object({
   isChanged: boolean().default(false),
 });
 
+const drainOptionsSchema = object({
+  ignoreDaemonSets: boolean().default(true),
+  timeoutSeconds: number()
+    .min(0, 'Timeout must be zero or a positive number of seconds')
+    .required('Timeout is required'),
+  gracePeriodSeconds: number()
+    .min(-1, 'Grace period must be -1 or a positive number of seconds')
+    .required('Grace period is required'),
+  force: boolean().default(false),
+  deleteEmptyDirData: boolean().default(true),
+  disableEviction: boolean().default(false),
+});
+
 export function createValidationSchema(
   isOnlyNode: boolean,
-  hasDrainOperation: boolean,
-  containsPortainer: boolean
+  containsPortainer: boolean,
+  isLastWorkerNode: boolean
 ) {
   return object({
     availability: string()
@@ -115,20 +128,20 @@ export function createValidationSchema(
         }
       )
       .test(
-        'other-node-drain',
-        'Cannot drain node when another node is currently being drained',
+        'portainer-drain',
+        'Cannot drain node where the Portainer instance is running',
         (value) => {
-          if (value === 'Drain' && hasDrainOperation) {
+          if (value === 'Drain' && containsPortainer) {
             return false;
           }
           return true;
         }
       )
       .test(
-        'portainer-drain',
-        'Cannot drain node where the Portainer instance is running',
+        'last-worker-node',
+        'Cannot drain the last worker node in the cluster',
         (value) => {
-          if (value === 'Drain' && containsPortainer) {
+          if (value === 'Drain' && isLastWorkerNode) {
             return false;
           }
           return true;
@@ -145,5 +158,6 @@ export function createValidationSchema(
       'Duplicate taint keys are not allowed',
       buildUniquenessTest(() => 'This taint key is already defined', 'key')
     ),
+    drainOptions: drainOptionsSchema,
   });
 }

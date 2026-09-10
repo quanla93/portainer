@@ -15,6 +15,7 @@ import (
 	"github.com/portainer/portainer/api/dataservices"
 	"github.com/portainer/portainer/api/dataservices/source"
 	"github.com/portainer/portainer/api/datastore"
+	dockerclient "github.com/portainer/portainer/api/docker/client"
 	gittypes "github.com/portainer/portainer/api/git/types"
 	"github.com/portainer/portainer/api/internal/testhelpers"
 	"github.com/portainer/portainer/pkg/fips"
@@ -81,6 +82,10 @@ vJUUCFYm8+9p6gTVOcoMit+eGSwa81PCPEs1TnU1PV/PaDFeUhn/mg==
 var adminUserContext = source.InsecureNewAdminContext()
 
 type noopDeployer struct{}
+
+func (s noopDeployer) GetDockerClientFactory() *dockerclient.ClientFactory {
+	return nil
+}
 
 // without unpacker
 func (s noopDeployer) DeploySwarmStack(_ context.Context, stack *portainer.Stack, endpoint *portainer.Endpoint, registries []portainer.Registry, prune, pullImage bool) error {
@@ -284,6 +289,48 @@ func Test_redeployWhenChanged_FailsWhenCannotClone(t *testing.T) {
 	require.Equal(t, portainer.SourceStatusError, updatedSrc.Status)
 	require.Contains(t, updatedSrc.StatusError, cloneErr.Error())
 	require.Zero(t, updatedSrc.LastSync)
+}
+
+func Test_redeployWhenChangedSecondStage_FailsWhenGitSourceHasNoGitConfig(t *testing.T) {
+	t.Parallel()
+	_, store := datastore.MustNewTestStore(t, false, true)
+	tmpDir := t.TempDir()
+
+	admin := &portainer.User{ID: 1, Username: "admin", Role: portainer.AdministratorRole}
+	err := store.User().Create(admin)
+	require.NoError(t, err, "error creating an admin")
+
+	endpoint := &portainer.Endpoint{ID: 1}
+	err = store.Endpoint().Create(endpoint)
+	require.NoError(t, err, "error creating environment")
+
+	// Type is SourceTypeGit but Git is nil, a shape the Source service's own
+	// Create/Update reject, so it's written directly into the bucket to
+	// reach MergeSourceAndFile's nil-gitConfig path.
+	src := &portainer.Source{ID: 1, Type: portainer.SourceTypeGit}
+	err = store.Connection().UpdateTx(func(tx portainer.Transaction) error {
+		return tx.CreateObjectWithId(source.BucketName, int(src.ID), src)
+	})
+	require.NoError(t, err, "failed to insert the malformed git source")
+
+	wf := &portainer.Workflow{Artifacts: []portainer.Artifact{{StackID: 8, Files: []portainer.ArtifactFile{{SourceID: src.ID}}}}}
+	err = store.Workflow().Create(wf)
+	require.NoError(t, err, "failed to create workflow")
+
+	stack := &portainer.Stack{
+		ID:          8,
+		EndpointID:  endpoint.ID,
+		ProjectPath: tmpDir,
+		UpdatedBy:   admin.Username,
+		WorkflowID:  wf.ID,
+		Type:        portainer.DockerComposeStack,
+	}
+	err = store.Stack().Create(stack)
+	require.NoError(t, err, "failed to create a test stack")
+
+	err = redeployWhenChangedSecondStage(t.Context(), stack, noopDeployer{}, store, testhelpers.NewGitService(nil, "newHash"), admin, endpoint)
+	require.Error(t, err)
+	require.ErrorContains(t, err, "has a git source with no git configuration")
 }
 
 func setupRedeployStore(t *testing.T, stackType portainer.StackType, stackID portainer.StackID) (dataservices.DataStore, portainer.StackID) {
