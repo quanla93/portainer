@@ -1192,6 +1192,21 @@ type (
 		AsyncMode bool `json:"AsyncMode,omitempty" example:"false"`
 	}
 
+	S3BackupSettings struct {
+		AccessKeyID      string `json:"accessKeyID"`
+		SecretAccessKey  string `json:"secretAccessKey"`
+		Region           string `json:"region"`
+		BucketName       string `json:"bucketName"`
+		Password         string `json:"password"`
+		CronRule         string `json:"cronRule"`
+		S3CompatibleHost string `json:"s3CompatibleHost"`
+	}
+
+	BackupStatus struct {
+		Failed       bool   `json:"Failed"`
+		TimestampUTC string `json:"TimestampUTC"`
+	}
+
 	// Settings represents the application settings
 	Settings struct {
 		// URL to a logo that will be displayed on the login page as well as on top of the sidebar. Will use default Portainer logo when value is empty string
@@ -1204,6 +1219,7 @@ type (
 		LDAPSettings         LDAPSettings                  `json:"LDAPSettings"`
 		OAuthSettings        OAuthSettings                 `json:"OAuthSettings"`
 		FeatureFlagSettings  map[featureflags.Feature]bool `json:"FeatureFlagSettings"`
+		S3BackupSettings     S3BackupSettings              `json:"S3BackupSettings"`
 		// The interval in which environment(endpoint) snapshots are created
 		SnapshotInterval string `json:"SnapshotInterval" example:"5m"`
 		// URL to the templates that will be displayed in the UI when navigating to App Templates
