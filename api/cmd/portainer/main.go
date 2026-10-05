@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"context"
 	"crypto/sha256"
-	nethttp "net/http"
 	"os"
 	"path"
 	"strings"
@@ -54,15 +53,12 @@ import (
 	"github.com/portainer/portainer/pkg/featureflags"
 	"github.com/portainer/portainer/pkg/fips"
 	"github.com/portainer/portainer/pkg/libhelm"
+	libhelmcache "github.com/portainer/portainer/pkg/libhelm/cache"
 	"github.com/portainer/portainer/pkg/libhttp/ssrf"
 	"github.com/portainer/portainer/pkg/libstack/compose"
 	libswarm "github.com/portainer/portainer/pkg/libstack/swarm"
 	"github.com/portainer/portainer/pkg/validate"
 
-	gogitclient "github.com/go-git/go-git/v5/plumbing/transport/client"
-	gogitraw "github.com/go-git/go-git/v5/plumbing/transport/git"
-	gogithttp "github.com/go-git/go-git/v5/plumbing/transport/http"
-	gogitssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
@@ -345,13 +341,13 @@ func initKeyPair(fileService portainer.FileService, signatureService portainer.D
 
 // dbSecretPath build the path to the file that contains the db encryption
 // secret. Normally in Docker this is built from the static path inside
-// /run/secrets for example: /run/secrets/<keyFilenameFlag> but for ease of
-// use outside Docker it also accepts an absolute path
+// portainer.DefaultSecretsDir for example: /run/secrets/<keyFilenameFlag> but
+// for ease of use outside Docker it also accepts an absolute path
 func dbSecretPath(keyFilenameFlag string) string {
 	if path.IsAbs(keyFilenameFlag) {
 		return keyFilenameFlag
 	}
-	return filesystem.JoinPaths("/run/secrets", keyFilenameFlag)
+	return filesystem.JoinPaths(portainer.DefaultSecretsDir, keyFilenameFlag)
 }
 
 func loadEncryptionSecretKey(keyfilename string) []byte {
@@ -418,10 +414,7 @@ func buildServer(flags *portainer.CLIFlags, shutdownCtx context.Context, shutdow
 		log.Fatal().Msg("failed to wrap default HTTP transport with SSRF protection")
 	}
 
-	gogithttp.DefaultClient = gogithttp.NewClient(&nethttp.Client{Transport: nethttp.DefaultTransport})
-	gogitclient.InstallProtocol("git", git.NewSSRFGitTransport(gogitraw.DefaultClient))
-	gogitclient.InstallProtocol("ssh", git.NewSSRFGitTransport(gogitssh.DefaultClient))
-	gogitclient.InstallProtocol("file", nil)
+	git.InstallSSRFProtocols()
 
 	instanceID, err := dataStore.Version().InstanceID()
 	if err != nil {
@@ -467,6 +460,10 @@ func buildServer(flags *portainer.CLIFlags, shutdownCtx context.Context, shutdow
 	}
 
 	reverseTunnelService := chisel.NewService(dataStore, shutdownCtx, fileService)
+
+	if err := libhelmcache.Initialize(settings.UserSessionTimeout); err != nil {
+		log.Fatal().Err(err).Msg("failed initializing Helm registry cache")
+	}
 
 	dockerClientFactory := dockerclient.NewClientFactory(signatureService, reverseTunnelService)
 

@@ -2139,7 +2139,7 @@ type (
 
 const (
 	// APIVersion is the version number of the Portainer API
-	APIVersion = "2.45.0"
+	APIVersion = "2.45.1"
 	// Support annotation for the API version ("STS" for Short-Term Support or "LTS" for Long-Term Support)
 	APIVersionSupport = "LTS"
 	// Edition is what this edition of Portainer is called
@@ -2189,6 +2189,8 @@ const (
 	DefaultKubeconfigExpiry = "0"
 	// DefaultKubectlShellImage represents the default image and tag for the kubectl shell
 	DefaultKubectlShellImage = "portainer/kubectl-shell:" + APIVersion
+	// DefaultSecretsDir is the directory a relative --secret-key-name is resolved against
+	DefaultSecretsDir = "/run/secrets"
 	// WebSocketKeepAlive web socket keep alive for edge environments
 	WebSocketKeepAlive = 1 * time.Hour
 	// AuthCookieName is the name of the cookie used to store the JWT token
