@@ -4,8 +4,15 @@ This file tracks changes specific to the `quanla93/portainer` CE fork. Upstream 
 
 ## 2.45.1 upstream integration
 
-- Integrated upstream Portainer `2.45.1` (`bcfb8d279`), including upstream security/dependency updates, FIPS checks, Helm fixes, GitOps updates, registry cache fixes, and Kubernetes/UI fixes.
-- Preserved the fork's CE-unlocked OAuth/local-account, RBAC role, and webhook changes.
+### Known issues
+
+- None known at release time.
+
+### Changes
+
+- Integrated the Portainer `2.45.1` upstream snapshot (`bcfb8d279`), including security and dependency updates, FIPS checks, Helm and GitOps fixes, registry cache fixes, and Kubernetes/UI improvements.
+- Carried forward the fork's CE customizations for OAuth/local accounts, RBAC role management, and stack/container webhooks.
+- Built release images from this tag's complete source snapshot; this version includes all changes committed before the release tag, not only the commit that introduced the tag.
 
 ## 2.44.2-ce-unlocked
 
