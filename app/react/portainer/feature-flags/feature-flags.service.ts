@@ -28,7 +28,7 @@ export async function init(edition: Edition) {
     [FeatureId.K8S_SETUP_DEFAULT]: Edition.BE,
     [FeatureId.RBAC_ROLES]: Edition.CE,
     [FeatureId.REGISTRY_MANAGEMENT]: Edition.BE,
-    [FeatureId.S3_BACKUP_SETTING]: Edition.BE,
+    [FeatureId.S3_BACKUP_SETTING]: Edition.CE,
     [FeatureId.S3_RESTORE]: Edition.BE,
     [FeatureId.TEAM_MEMBERSHIP]: Edition.BE,
     [FeatureId.FORCE_REDEPLOYMENT]: Edition.BE,

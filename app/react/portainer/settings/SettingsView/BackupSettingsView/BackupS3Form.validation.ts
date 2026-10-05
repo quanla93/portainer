@@ -26,25 +26,10 @@ export function validationSchema(): SchemaOf<BackupS3Settings> {
               ),
           }),
       }),
-    accessKeyID: string()
-      .default('')
-      .when('scheduleAutomaticBackup', {
-        is: true,
-        then: (schema) => schema.required('This field is required.'),
-      }),
-    secretAccessKey: string()
-      .default('')
-      .when('scheduleAutomaticBackup', {
-        is: true,
-        then: (schema) => schema.required('This field is required.'),
-      }),
+    accessKeyID: string().default('').required('This field is required.'),
+    secretAccessKey: string().default('').required('This field is required.'),
     region: string().default('').optional(),
-    bucketName: string()
-      .default('')
-      .when('scheduleAutomaticBackup', {
-        is: true,
-        then: (schema) => schema.required('This field is required.'),
-      }),
+    bucketName: string().default('').required('This field is required.'),
     s3CompatibleHost: string()
       .default('')
       .when({

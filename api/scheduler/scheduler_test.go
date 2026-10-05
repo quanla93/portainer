@@ -173,3 +173,14 @@ func Test_StartJobEvery_Concurrently(t *testing.T) {
 		<-ctx.Done()
 	})
 }
+
+func Test_StartJobCronRejectsInvalidExpression(t *testing.T) {
+	t.Parallel()
+
+	s := NewScheduler(t.Context())
+	defer requireNoShutdownErr(t, s.Shutdown)
+
+	_, err := s.StartJobCron("not a cron expression", func() error { return nil })
+
+	require.Error(t, err)
+}
