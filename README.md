@@ -8,7 +8,22 @@ Portainer consists of a single container that can run on any cluster. It can be 
 
 **Portainer Business Edition** builds on the open-source base and includes a range of advanced features and functions (like RBAC and Support) that are specific to the needs of business users.
 
+## About this fork
+
+This repository is an **unofficial personal fork** of [Portainer CE](https://github.com/portainer/portainer). It is maintained for personal use and experimentation, with the goal of keeping up with upstream Portainer releases while carrying a small set of CE customizations.
+
+In addition to upstream changes, this fork currently includes selected CE-side enhancements, such as:
+
+- Local password-based accounts when OAuth or LDAP authentication is configured.
+- CE access to selected features related to OAuth settings, stack/container webhooks, and RBAC role management.
+- Fixes and UI/API adjustments needed to support those changes.
+
+These customizations do **not** turn this fork into Portainer Business Edition and do not include all BE features, support, or guarantees. This fork is not affiliated with or supported by Portainer. For official Portainer CE, use [portainer/portainer](https://github.com/portainer/portainer).
+
+Fork-specific changes by version are documented in [CHANGELOG-FORK.md](./CHANGELOG-FORK.md); upstream changes are maintained by the [official Portainer releases](https://github.com/portainer/portainer/releases).
+
 - [Compare Portainer CE and Compare Portainer BE](https://www.portainer.io/features)
+
 - [Take3 – get 3 free nodes of Portainer Business for as long as you want them](https://www.portainer.io/take-3)
 - [Portainer BE install guide](https://academy.portainer.io/install/)
 
