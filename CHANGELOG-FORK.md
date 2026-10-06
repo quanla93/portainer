@@ -2,6 +2,14 @@
 
 This file tracks changes specific to the `quanla93/portainer` CE fork. Upstream Portainer release notes remain authoritative for changes not listed here.
 
+## 2.45.1-ce-r2.2
+
+### Changes
+
+- Enabled scheduled S3-compatible Portainer backups in Community Edition.
+- Added support for Cloudflare R2, AWS S3, MinIO, Wasabi, Backblaze B2 S3 API, and other S3-compatible endpoints.
+- Added Cloudflare R2 endpoint guidance, five-field cron scheduling, backup status reporting, and credential redaction from the settings API.
+
 ## Release-note convention
 
 For a curated GitHub release body, add a section named `## <version>` before pushing the matching `v<version>` tag (for example, `## 2.45.1-ce-r2.2`). If it is absent or empty, release automation generates notes from commits since the preceding version tag so image builds and release publication can still complete.
