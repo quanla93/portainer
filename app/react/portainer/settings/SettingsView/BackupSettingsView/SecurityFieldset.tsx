@@ -8,12 +8,14 @@ import { SwitchField } from '@@/form-components/SwitchField';
 interface Props {
   switchDataCy: string;
   inputDataCy: string;
+  passwordConfigured?: boolean;
   disabled?: boolean;
 }
 
 export function SecurityFieldset({
   switchDataCy,
   inputDataCy,
+  passwordConfigured = false,
   disabled,
 }: Props) {
   const [{ value: passwordProtect }, , { setValue: setPasswordProtect }] =
@@ -43,7 +45,12 @@ export function SecurityFieldset({
           label="Password"
           size="small"
           errors={error}
-          required
+          required={!passwordConfigured}
+          tooltip={
+            passwordConfigured
+              ? 'A backup password is already saved. Leave this field blank to keep it, or enter a new value to replace it.'
+              : undefined
+          }
         >
           <Field
             id="password"
@@ -51,7 +58,11 @@ export function SecurityFieldset({
             type="password"
             as={Input}
             data-cy={inputDataCy}
-            required
+            placeholder={
+              passwordConfigured
+                ? 'Leave blank to keep the saved password'
+                : undefined
+            }
           />
         </FormControl>
       )}

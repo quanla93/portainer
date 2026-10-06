@@ -15,11 +15,13 @@ import (
 type s3BackupPayload portainer.S3BackupSettings
 
 type s3BackupSettingsResponse struct {
-	AccessKeyID      string `json:"accessKeyID"`
-	Region           string `json:"region"`
-	BucketName       string `json:"bucketName"`
-	CronRule         string `json:"cronRule"`
-	S3CompatibleHost string `json:"s3CompatibleHost"`
+	AccessKeyID               string `json:"accessKeyID"`
+	Region                    string `json:"region"`
+	BucketName                string `json:"bucketName"`
+	CronRule                  string `json:"cronRule"`
+	S3CompatibleHost          string `json:"s3CompatibleHost"`
+	SecretAccessKeyConfigured bool   `json:"secretAccessKeyConfigured"`
+	PasswordConfigured        bool   `json:"passwordConfigured"`
 }
 
 func (p *s3BackupPayload) Validate(r *http.Request) error {
@@ -168,10 +170,12 @@ func (h *Handler) reconcileS3Schedule(settings portainer.S3BackupSettings) error
 
 func redactS3BackupSettings(settings portainer.S3BackupSettings) s3BackupSettingsResponse {
 	return s3BackupSettingsResponse{
-		AccessKeyID:      settings.AccessKeyID,
-		Region:           settings.Region,
-		BucketName:       settings.BucketName,
-		CronRule:         settings.CronRule,
-		S3CompatibleHost: settings.S3CompatibleHost,
+		AccessKeyID:               settings.AccessKeyID,
+		Region:                    settings.Region,
+		BucketName:                settings.BucketName,
+		CronRule:                  settings.CronRule,
+		S3CompatibleHost:          settings.S3CompatibleHost,
+		SecretAccessKeyConfigured: settings.SecretAccessKey != "",
+		PasswordConfigured:        settings.Password != "",
 	}
 }
