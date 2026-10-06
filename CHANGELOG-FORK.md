@@ -2,6 +2,10 @@
 
 This file tracks changes specific to the `quanla93/portainer` CE fork. Upstream Portainer release notes remain authoritative for changes not listed here.
 
+## Release-note convention
+
+For a curated GitHub release body, add a section named `## <version>` before pushing the matching `v<version>` tag (for example, `## 2.45.1-ce-r2.2`). If it is absent or empty, release automation generates notes from commits since the preceding version tag so image builds and release publication can still complete.
+
 ## 2.45.1 upstream integration
 
 ### Known issues
