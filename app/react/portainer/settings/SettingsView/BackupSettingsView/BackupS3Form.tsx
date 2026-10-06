@@ -27,6 +27,8 @@ export function BackupS3Form() {
   }
 
   const settings = settingsQuery.data;
+  const secretAccessKeyConfigured = !!settings?.secretAccessKeyConfigured;
+  const passwordConfigured = !!settings?.passwordConfigured;
   const backupS3Settings = {
     password: settings?.password || '',
     cronRule: settings?.cronRule || '',
@@ -36,13 +38,16 @@ export function BackupS3Form() {
     bucketName: settings?.bucketName || '',
     s3CompatibleHost: settings?.s3CompatibleHost || '',
     scheduleAutomaticBackup: !!settings?.cronRule,
-    passwordProtect: !!settings?.password,
+    passwordProtect: passwordConfigured,
   };
 
   return (
     <Formik<BackupS3Settings>
       initialValues={backupS3Settings}
-      validationSchema={validationSchema}
+      validationSchema={validationSchema({
+        secretAccessKeyConfigured,
+        passwordConfigured,
+      })}
       onSubmit={onSubmit}
       validateOnMount
     >
@@ -100,12 +105,22 @@ export function BackupS3Form() {
             label="Secret access key"
             inputId="secret_access_key"
             errors={errors.secretAccessKey}
+            tooltip={
+              secretAccessKeyConfigured
+                ? 'A secret access key is already saved. Leave this field blank to keep it, or enter a new value to replace it.'
+                : undefined
+            }
           >
             <Field
               id="secret_access_key"
               name="secretAccessKey"
               type="password"
               as={Input}
+              placeholder={
+                secretAccessKeyConfigured
+                  ? 'Leave blank to keep the saved secret'
+                  : undefined
+              }
               data-cy="settings-secretAccessKeyInput"
             />
           </FormControl>
@@ -154,6 +169,7 @@ export function BackupS3Form() {
           <SecurityFieldset
             switchDataCy="settings-passwordProtectToggleS3"
             inputDataCy="settings-backups3pw"
+            passwordConfigured={passwordConfigured}
           />
 
           <div className="form-group">

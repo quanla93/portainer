@@ -1,15 +1,21 @@
 import { SchemaOf, object, string, boolean } from 'yup';
 
-import { BackupS3Settings } from './types';
+import { BackupS3Model, BackupS3Settings } from './types';
 
-export function validationSchema(): SchemaOf<BackupS3Settings> {
+export function validationSchema({
+  secretAccessKeyConfigured,
+  passwordConfigured,
+}: Pick<BackupS3Model, 'secretAccessKeyConfigured' | 'passwordConfigured'>): SchemaOf<BackupS3Settings> {
   return object({
     passwordProtect: boolean().default(false),
     password: string()
       .default('')
       .when('passwordProtect', {
         is: true,
-        then: (schema) => schema.required('This field is required.'),
+        then: (schema) =>
+          passwordConfigured
+            ? schema
+            : schema.required('This field is required.'),
       }),
     scheduleAutomaticBackup: boolean().default(false),
     cronRule: string()
@@ -27,7 +33,9 @@ export function validationSchema(): SchemaOf<BackupS3Settings> {
           }),
       }),
     accessKeyID: string().default('').required('This field is required.'),
-    secretAccessKey: string().default('').required('This field is required.'),
+    secretAccessKey: secretAccessKeyConfigured
+      ? string().default('')
+      : string().default('').required('This field is required.'),
     region: string().default('').optional(),
     bucketName: string().default('').required('This field is required.'),
     s3CompatibleHost: string()

@@ -2,9 +2,11 @@ export interface BackupS3Model {
   cronRule: string;
   accessKeyID: string;
   secretAccessKey: string;
+  secretAccessKeyConfigured?: boolean;
   region: string;
   bucketName: string;
   password: string;
+  passwordConfigured?: boolean;
   s3CompatibleHost: string;
 }
 
