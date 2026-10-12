@@ -9,6 +9,7 @@ import (
 	"github.com/portainer/portainer/api/dataservices"
 	"github.com/portainer/portainer/api/dataservices/allowlist"
 	"github.com/portainer/portainer/api/dataservices/apikeyrepository"
+	"github.com/portainer/portainer/api/dataservices/backuphistory"
 	"github.com/portainer/portainer/api/dataservices/customtemplate"
 	"github.com/portainer/portainer/api/dataservices/dockerhub"
 	"github.com/portainer/portainer/api/dataservices/edgegroup"
@@ -83,6 +84,7 @@ type Store struct {
 	WebhookService            *webhook.Service
 	WorkflowService           *workflow.Service
 	PendingActionsService     *pendingactions.Service
+	BackupHistoryService      *backuphistory.Service
 }
 
 func (store *Store) initServices() error {
@@ -275,12 +277,22 @@ func (store *Store) initServices() error {
 	}
 	store.PendingActionsService = pendingActionsService
 
+	backupHistoryService, err := backuphistory.NewService(store.connection)
+	if err != nil {
+		return err
+	}
+	store.BackupHistoryService = backupHistoryService
+
 	return nil
 }
 
 // PendingActions gives access to the PendingActions data management layer
 func (store *Store) PendingActions() dataservices.PendingActionsService {
 	return store.PendingActionsService
+}
+
+func (store *Store) BackupHistory() dataservices.BackupHistoryService {
+	return store.BackupHistoryService
 }
 
 // AllowList gives access to the AllowList data management layer
@@ -444,9 +456,22 @@ type storeExport struct {
 	Webhook            []portainer.Webhook            `json:"webhooks,omitempty"`
 	Workflow           []portainer.Workflow           `json:"workflows,omitempty"`
 	Metadata           map[string]any                 `json:"metadata,omitempty"`
+	BackupHistory      *[]portainer.BackupAttempt     `json:"backup_history,omitempty"`
 }
 
 func (store *Store) Export(filename string) (err error) {
+	return store.export(filename, false)
+}
+
+// ExportForEncryptionMigration preserves internal backup history in the encrypted database
+// conversion without changing the portable JSON export contract.
+func (store *Store) exportForEncryptionMigration(filename string) error {
+	return store.export(filename, true)
+}
+
+// export serializes datastore records. Portable exports omit private operational history;
+// the encryption migration preserves it through its local-only export file.
+func (store *Store) export(filename string, includeBackupHistory bool) (err error) {
 	backup := storeExport{}
 
 	if c, err := store.CustomTemplate().ReadAll(); err != nil {
@@ -657,9 +682,20 @@ func (store *Store) Export(filename string) (err error) {
 		backup.Version = *version
 	}
 
+	if includeBackupHistory {
+		backupHistory, err := store.BackupHistory().ReadAll()
+		if err != nil {
+			return fmt.Errorf("exporting backup history: %w", err)
+		}
+		backup.BackupHistory = &backupHistory
+	}
+
 	backup.Metadata, err = store.connection.BackupMetadata()
 	if err != nil {
 		log.Error().Err(err).Msg("exporting Metadata")
+	}
+	if !includeBackupHistory && backup.Metadata != nil {
+		delete(backup.Metadata, backuphistory.BucketName)
 	}
 
 	b, err := json.MarshalIndent(backup, "", "  ")
@@ -671,6 +707,10 @@ func (store *Store) Export(filename string) (err error) {
 }
 
 func (store *Store) Import(filename string) (err error) {
+	return store.importBackup(filename, false)
+}
+
+func (store *Store) importBackup(filename string, importBackupHistory bool) (err error) {
 	backup := storeExport{}
 
 	s, err := os.ReadFile(filename)
@@ -685,6 +725,17 @@ func (store *Store) Import(filename string) (err error) {
 	err = store.Version().UpdateVersion(&backup.Version)
 	if err != nil {
 		return err
+	}
+
+	if importBackupHistory && backup.BackupHistory != nil {
+		// ReadAll exports newest-first. Import oldest-first so newly allocated IDs
+		// preserve the relative order of attempts with identical completion times.
+		for i := len(*backup.BackupHistory) - 1; i >= 0; i-- {
+			attempt := (*backup.BackupHistory)[i]
+			if err := store.BackupHistory().Append(&attempt); err != nil {
+				return fmt.Errorf("importing backup history: %w", err)
+			}
+		}
 	}
 
 	for _, v := range backup.CustomTemplate {

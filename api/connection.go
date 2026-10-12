@@ -16,6 +16,7 @@ type Transaction interface {
 	ReadTransaction
 
 	SetServiceName(bucketName string) error
+	SetNextIdentifier(bucketName string) (int, error)
 	UpdateObject(bucketName string, key []byte, object any) error
 	DeleteObject(bucketName string, key []byte) error
 	CreateObject(bucketName string, fn func(uint64) (int, any)) error

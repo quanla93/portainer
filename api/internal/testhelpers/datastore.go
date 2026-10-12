@@ -41,6 +41,7 @@ type testDatastore struct {
 	version                 dataservices.VersionService
 	webhook                 dataservices.WebhookService
 	pendingActionsService   dataservices.PendingActionsService
+	backupHistoryService    dataservices.BackupHistoryService
 	workflow                dataservices.WorkflowService
 	connection              portainer.Connection
 }
@@ -100,6 +101,10 @@ func (d *testDatastore) PendingActions() dataservices.PendingActionsService {
 	return d.pendingActionsService
 }
 
+func (d *testDatastore) BackupHistory() dataservices.BackupHistoryService {
+	return d.backupHistoryService
+}
+
 func (d *testDatastore) Connection() portainer.Connection {
 	return d.connection
 }
@@ -127,7 +132,6 @@ func NewDatastore(options ...datastoreOption) *testDatastore {
 	for _, o := range options {
 		o(&d)
 	}
-
 	return &d
 }
 

@@ -1,6 +1,7 @@
 {
   "allowlist": null,
   "api_key": null,
+  "backup_history": null,
   "customtemplates": null,
   "dockerhub": [
     {

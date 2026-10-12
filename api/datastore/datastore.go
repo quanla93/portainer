@@ -147,7 +147,7 @@ func (store *Store) encryptDB() error {
 
 	log.Info().Str("filename", exportFilename).Msg("exporting database backup")
 
-	if err := store.Export(exportFilename); err != nil {
+	if err := store.exportForEncryptionMigration(exportFilename); err != nil {
 		log.Error().Str("filename", exportFilename).Err(err).Msg("failed to export")
 
 		return err
@@ -160,7 +160,17 @@ func (store *Store) encryptDB() error {
 		return err
 	}
 
-	if err := store.Import(exportFilename); err != nil {
+	if err := store.connection.SetEncrypted(true); err != nil {
+		return err
+	}
+	if err := store.connection.Open(); err != nil {
+		return err
+	}
+	if err := store.initServices(); err != nil {
+		return err
+	}
+
+	if err := store.importBackup(exportFilename, true); err != nil {
 		log.Error().Err(err).Msg("failed to import database backup")
 
 		// Remove the new encrypted file that we failed to import

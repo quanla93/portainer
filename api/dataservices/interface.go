@@ -38,6 +38,7 @@ type (
 		Webhook() WebhookService
 		Workflow() WorkflowService
 		PendingActions() PendingActionsService
+		BackupHistory() BackupHistoryService
 	}
 
 	DataStore interface {
@@ -90,6 +91,11 @@ type (
 		BaseCRUD[portainer.PendingAction, portainer.PendingActionID]
 		GetNextIdentifier() int
 		DeleteByEndpointID(ID portainer.EndpointID) error
+	}
+
+	BackupHistoryService interface {
+		Append(attempt *portainer.BackupAttempt) error
+		ReadAll() ([]portainer.BackupAttempt, error)
 	}
 
 	// EdgeStackService represents a service to manage Edge stacks

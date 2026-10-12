@@ -2,6 +2,13 @@
 
 This file tracks changes specific to the `quanla93/portainer` CE fork. Upstream Portainer release notes remain authoritative for changes not listed here.
 
+## 2.45.2-ce-r2.1
+
+### Changes
+
+- Integrated the upstream Portainer `2.45.2` source tag. See the [official Portainer 2.45.2 release notes](https://github.com/portainer/portainer/releases/tag/2.45.2) for upstream changes.
+- Added persistent, bounded backup-attempt history and S3-compatible bucket-access checks for the Backup Health Center.
+
 ## 2.45.1-ce-r2.2
 
 ### Changes

@@ -1203,8 +1203,36 @@ type (
 	}
 
 	BackupStatus struct {
-		Failed       bool   `json:"Failed"`
-		TimestampUTC string `json:"TimestampUTC"`
+		Failed              bool            `json:"Failed"`
+		TimestampUTC        string          `json:"TimestampUTC"`
+		State               string          `json:"state"`
+		LatestTrigger       string          `json:"latestTrigger,omitempty"`
+		RunningTrigger      string          `json:"runningTrigger,omitempty"`
+		LatestErrorCategory string          `json:"latestErrorCategory,omitempty"`
+		LatestErrorMessage  string          `json:"latestErrorMessage,omitempty"`
+		History             []BackupAttempt `json:"history"`
+		HistoryAvailable    bool            `json:"historyAvailable"`
+		Schedule            BackupSchedule  `json:"schedule"`
+	}
+
+	BackupSchedule struct {
+		Enabled       bool   `json:"enabled"`
+		State         string `json:"state"`
+		NextRunUTC    string `json:"nextRunUTC,omitempty"`
+		TimezoneState string `json:"timezoneState"`
+		Timezone      string `json:"timezone,omitempty"`
+	}
+
+	// BackupAttempt stores the safe summary of one completed S3 export.
+	BackupAttempt struct {
+		ID               int       `json:"id"`
+		Trigger          string    `json:"trigger"`
+		StartedAtUTC     time.Time `json:"startedAtUTC"`
+		CompletedAtUTC   time.Time `json:"completedAtUTC"`
+		DurationMS       int64     `json:"durationMS"`
+		Outcome          string    `json:"outcome"`
+		ErrorCategory    string    `json:"errorCategory,omitempty"`
+		SafeErrorMessage string    `json:"safeErrorMessage,omitempty"`
 	}
 
 	// Settings represents the application settings
@@ -1630,11 +1658,11 @@ type (
 		Username string `json:"Username" example:"bob" validate:"required"`
 		Password string `json:"Password,omitempty" swaggerignore:"true"`
 		// User role (1 for administrator account and 2 for regular account)
-		Role          UserRole          `json:"Role" example:"1" validate:"required"`
-		TokenIssueAt  int64             `json:"TokenIssueAt" example:"1"`
-		ThemeSettings UserThemeSettings `json:"ThemeSettings"`
-		UseCache      bool              `json:"UseCache" example:"true"`
-		UserHasPassword bool            `json:"UserHasPassword"`
+		Role            UserRole          `json:"Role" example:"1" validate:"required"`
+		TokenIssueAt    int64             `json:"TokenIssueAt" example:"1"`
+		ThemeSettings   UserThemeSettings `json:"ThemeSettings"`
+		UseCache        bool              `json:"UseCache" example:"true"`
+		UserHasPassword bool              `json:"UserHasPassword"`
 
 		// Deprecated fields
 
