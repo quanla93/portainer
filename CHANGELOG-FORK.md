@@ -7,7 +7,9 @@ This file tracks changes specific to the `quanla93/portainer` CE fork. Upstream 
 ### Changes
 
 - Integrated the upstream Portainer `2.45.2` source tag. See the [official Portainer 2.45.2 release notes](https://github.com/portainer/portainer/releases/tag/2.45.2) for upstream changes.
-- Added persistent, bounded backup-attempt history and S3-compatible bucket-access checks for the Backup Health Center.
+- Added persistent, bounded backup-attempt history and an S3-compatible bucket connection test for the Backup Health Center.
+- Recorded manual and scheduled S3 backup outcomes, duration, trigger, and safe error summaries in the status API.
+- Added the calculated next scheduled backup time in UTC with timezone availability; disabled or invalid schedules report no next-run time. Existing backup status fields remain available.
 
 ## 2.45.1-ce-r2.2
 
