@@ -88,11 +88,16 @@ func TestTxs(t *testing.T) {
 
 	// Get next identifier
 	err = conn.UpdateTx(func(tx portainer.Transaction) error {
-		id1 := tx.GetNextIdentifier(testBucketName)
-		id2 := tx.GetNextIdentifier(testBucketName)
-
+		id1, err := tx.SetNextIdentifier(testBucketName)
+		if err != nil {
+			return err
+		}
+		id2, err := tx.SetNextIdentifier(testBucketName)
+		if err != nil {
+			return err
+		}
 		if id1+1 != id2 {
-			return errors.New("unexpected identifier sequence")
+			return errors.New("unexpected error-returning identifier sequence")
 		}
 
 		return nil

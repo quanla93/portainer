@@ -26,6 +26,10 @@ func (tx *StoreTx) PendingActions() dataservices.PendingActionsService {
 	return tx.store.PendingActionsService.Tx(tx.tx)
 }
 
+func (tx *StoreTx) BackupHistory() dataservices.BackupHistoryService {
+	return tx.store.BackupHistoryService.Tx(tx.tx)
+}
+
 func (tx *StoreTx) EdgeGroup() dataservices.EdgeGroupService {
 	return tx.store.EdgeGroupService.Tx(tx.tx)
 }

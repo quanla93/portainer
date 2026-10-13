@@ -493,6 +493,7 @@ func buildServer(flags *portainer.CLIFlags, shutdownCtx context.Context, shutdow
 
 	pendingActionsService := pendingactions.NewService(dataStore, kubernetesClientFactory)
 	pendingActionsService.RegisterHandler(actions.CleanNAPWithOverridePolicies, handlers.NewHandlerCleanNAPWithOverridePolicies(authorizationService, dataStore))
+	pendingActionsService.RegisterHandler(actions.CleanupNamespaceRecords, handlers.NewHandlerCleanupNamespaceRecords(dataStore, kubernetesClientFactory))
 	pendingActionsService.RegisterHandler(actions.DeletePortainerK8sRegistrySecrets, handlers.NewHandlerDeleteRegistrySecrets(authorizationService, dataStore, kubernetesClientFactory))
 	pendingActionsService.RegisterHandler(actions.PostInitMigrateEnvironment, handlers.NewHandlerPostInitMigrateEnvironment(authorizationService, dataStore, kubernetesClientFactory, dockerClientFactory, *flags.Assets, kubernetesDeployer))
 
@@ -575,7 +576,7 @@ func buildServer(flags *portainer.CLIFlags, shutdownCtx context.Context, shutdow
 	stackDeployer := deployments.NewStackDeployer(swarmStackManager, composeStackManager, kubernetesDeployer, dockerClientFactory, dataStore)
 	sourceScheduler := scheduling.NewSourceScheduler(sched, dataStore, scheduling.Deployers{
 		Stack: func(ctx context.Context, stackID portainer.StackID) error {
-			return deployments.RedeployWhenChanged(ctx, stackID, stackDeployer, dataStore, gitService)
+			return deployments.RedeployWhenChanged(ctx, stackID, stackDeployer, dataStore, gitService, fileService)
 		},
 		StackExists: dataStore.Stack().Exists,
 		EdgeStackExists: func(edgeStackID portainer.EdgeStackID) (bool, error) {

@@ -101,16 +101,18 @@ func (tx *DbTransaction) DeleteAllObjects(bucketName string, obj any, matchingFn
 }
 
 func (tx *DbTransaction) GetNextIdentifier(bucketName string) int {
-	bucket := tx.tx.Bucket([]byte(bucketName))
-
-	id, err := bucket.NextSequence()
+	id, err := tx.SetNextIdentifier(bucketName)
 	if err != nil {
 		log.Error().Err(err).Str("bucket", bucketName).Msg("failed to get the next identifier")
-
 		return 0
 	}
+	return id
+}
 
-	return int(id)
+func (tx *DbTransaction) SetNextIdentifier(bucketName string) (int, error) {
+	bucket := tx.tx.Bucket([]byte(bucketName))
+	id, err := bucket.NextSequence()
+	return int(id), err
 }
 
 func (tx *DbTransaction) CreateObject(bucketName string, fn func(uint64) (int, any)) error {

@@ -145,7 +145,8 @@ func (server *Server) Start(ctx context.Context) error {
 	adminMonitor := adminmonitor.New(5*time.Minute, server.DataStore)
 	adminMonitor.Start(ctx)
 
-	var backupHandler = backup.NewHandler(
+	var backupHandler = backup.NewHandlerWithShutdownContext(
+		ctx,
 		requestBouncer,
 		server.DataStore,
 		offlineGate,

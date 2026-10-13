@@ -4,9 +4,11 @@ import (
 	"context"
 	"net/http"
 	"sync"
+	"time"
 
 	portainer "github.com/portainer/portainer/api"
 	"github.com/portainer/portainer/api/adminmonitor"
+	operations "github.com/portainer/portainer/api/backup"
 	"github.com/portainer/portainer/api/dataservices"
 	"github.com/portainer/portainer/api/http/offlinegate"
 	"github.com/portainer/portainer/api/http/security"
@@ -20,23 +22,57 @@ import (
 // Handler is an http handler responsible for backup and restore portainer state
 type Handler struct {
 	*mux.Router
-	bouncer         security.BouncerService
-	dataStore       dataservices.DataStore
-	gate            *offlinegate.OfflineGate
-	filestorePath   string
-	shutdownTrigger context.CancelFunc
-	adminMonitor    *adminmonitor.Monitor
-	scheduler       *scheduler.Scheduler
-	SetupToken      string
-	exportMu        sync.Mutex
-	scheduleMu      sync.Mutex
-	scheduledJobID  string
-	statusMu        sync.Mutex
-	backupStatus    portainer.BackupStatus
+	bouncer             security.BouncerService
+	dataStore           dataservices.DataStore
+	gate                *offlinegate.OfflineGate
+	filestorePath       string
+	shutdownTrigger     context.CancelFunc
+	adminMonitor        *adminmonitor.Monitor
+	scheduler           *scheduler.Scheduler
+	SetupToken          string
+	exportMu            chan struct{}
+	scheduleMu          sync.Mutex
+	scheduledJobID      string
+	statusMu            sync.Mutex
+	backupStatus        portainer.BackupStatus
+	checkS3BucketAccess func(context.Context, portainer.S3BackupSettings) operations.S3ConnectionTestResult
+	uploadS3Backup      func(context.Context, portainer.S3BackupSettings) error
+	now                 func() time.Time
+	shutdownCtx         context.Context
+	runningExport       *portainer.BackupAttempt
+	historyIncomplete   bool
+	historyAvailable    bool
 }
 
 // NewHandler creates an new instance of backup handler
 func NewHandler(
+	bouncer security.BouncerService,
+	dataStore dataservices.DataStore,
+	gate *offlinegate.OfflineGate,
+	filestorePath string,
+	shutdownTrigger context.CancelFunc,
+	adminMonitor *adminmonitor.Monitor,
+	schedulers ...*scheduler.Scheduler,
+) *Handler {
+	return newHandler(nil, bouncer, dataStore, gate, filestorePath, shutdownTrigger, adminMonitor, schedulers...)
+}
+
+// NewHandlerWithShutdownContext supplies the lifecycle context before schedule restoration.
+func NewHandlerWithShutdownContext(
+	ctx context.Context,
+	bouncer security.BouncerService,
+	dataStore dataservices.DataStore,
+	gate *offlinegate.OfflineGate,
+	filestorePath string,
+	shutdownTrigger context.CancelFunc,
+	adminMonitor *adminmonitor.Monitor,
+	schedulers ...*scheduler.Scheduler,
+) *Handler {
+	return newHandler(ctx, bouncer, dataStore, gate, filestorePath, shutdownTrigger, adminMonitor, schedulers...)
+}
+
+func newHandler(
+	shutdownCtx context.Context,
 	bouncer security.BouncerService,
 	dataStore dataservices.DataStore,
 	gate *offlinegate.OfflineGate,
@@ -51,6 +87,7 @@ func NewHandler(
 	}
 	h := &Handler{
 		Router:          mux.NewRouter(),
+		exportMu:        make(chan struct{}, 1),
 		bouncer:         bouncer,
 		dataStore:       dataStore,
 		gate:            gate,
@@ -58,12 +95,14 @@ func NewHandler(
 		shutdownTrigger: shutdownTrigger,
 		adminMonitor:    adminMonitor,
 		scheduler:       backupScheduler,
+		shutdownCtx:     shutdownCtx,
 	}
 
 	h.Handle("/backup", bouncer.RestrictedAccess(adminAccess(httperror.LoggerHandler(h.backup)))).Methods(http.MethodPost)
 	h.Handle("/backup/s3/settings", bouncer.RestrictedAccess(adminAccess(httperror.LoggerHandler(h.s3Settings)))).Methods(http.MethodGet)
 	h.Handle("/backup/s3/settings", bouncer.RestrictedAccess(adminAccess(httperror.LoggerHandler(h.saveS3Settings)))).Methods(http.MethodPost)
 	h.Handle("/backup/s3/execute", bouncer.RestrictedAccess(adminAccess(httperror.LoggerHandler(h.exportS3Backup)))).Methods(http.MethodPost)
+	h.Handle("/backup/s3/test", bouncer.RestrictedAccess(adminAccess(httperror.LoggerHandler(h.testS3BackupConnection)))).Methods(http.MethodPost)
 	h.Handle("/backup/s3/status", bouncer.RestrictedAccess(adminAccess(httperror.LoggerHandler(h.s3Status)))).Methods(http.MethodGet)
 	h.Handle("/restore", bouncer.PublicAccess(httperror.LoggerHandler(h.restore))).Methods(http.MethodPost)
 
@@ -72,6 +111,11 @@ func NewHandler(
 	}
 
 	return h
+}
+
+// SetShutdownContext provides the server lifecycle context for scheduled S3 exports.
+func (h *Handler) SetShutdownContext(ctx context.Context) {
+	h.shutdownCtx = ctx
 }
 
 func adminAccess(next http.Handler) http.Handler {

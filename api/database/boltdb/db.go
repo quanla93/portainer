@@ -383,6 +383,17 @@ func (connection *DbConnection) DeleteAllObjects(bucketName string, obj any, mat
 	})
 }
 
+// SetNextIdentifier allocates the next sequence identifier and returns transaction errors.
+func (connection *DbConnection) SetNextIdentifier(bucketName string) (int, error) {
+	var identifier int
+	err := connection.UpdateTx(func(tx portainer.Transaction) error {
+		var err error
+		identifier, err = tx.SetNextIdentifier(bucketName)
+		return err
+	})
+	return identifier, err
+}
+
 // GetNextIdentifier is a generic function that returns the specified bucket identifier incremented by 1.
 func (connection *DbConnection) GetNextIdentifier(bucketName string) int {
 	var identifier int
