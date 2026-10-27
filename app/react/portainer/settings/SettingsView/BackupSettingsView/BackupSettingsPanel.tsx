@@ -8,6 +8,7 @@ import { BoxSelector } from '@@/BoxSelector';
 import { BackupFormType, options } from './backup-options';
 import { BackupFileForm } from './BackupFileForm';
 import { BackupS3Form } from './BackupS3Form';
+import { BackupHealthCenter } from './BackupHealthCenter';
 
 export function BackupSettingsPanel() {
   const [backupType, setBackupType] = useState(options[0].value);
@@ -31,7 +32,10 @@ export function BackupSettingsPanel() {
             />
 
             {backupType === BackupFormType.S3 ? (
-              <BackupS3Form />
+              <div>
+                <BackupS3Form />
+                <BackupHealthCenter />
+              </div>
             ) : (
               <BackupFileForm />
             )}

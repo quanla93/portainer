@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import axios, { parseAxiosError } from '@/portainer/services/axios/axios';
 import { withError } from '@/react-tools/react-query';
@@ -8,7 +8,10 @@ import { BackupS3Model } from '../types';
 import { buildUrl } from './backupSettings.service';
 
 export function useExportS3BackupMutation() {
+  const queryClient = useQueryClient();
+
   return useMutation(exportS3Backup, {
+    onSettled: () => queryClient.invalidateQueries(['backup', 'status']),
     ...withError('Unable to export backup to S3'),
   });
 }

@@ -12,8 +12,10 @@ export function useUpdateBackupS3SettingsMutation() {
   const queryClient = useQueryClient();
 
   return useMutation(updateBackupS3Settings, {
-    onSuccess: () =>
-      queryClient.invalidateQueries(queryKeys.backupS3Settings()),
+    onSuccess: () => {
+      queryClient.invalidateQueries(queryKeys.backupS3Settings());
+      queryClient.invalidateQueries(queryKeys.backupS3Status());
+    },
     ...withError('Unable to save s3 backup settings'),
   });
 }
