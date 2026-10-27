@@ -104,7 +104,7 @@ info:
     name: zlib
     url: https://github.com/portainer/portainer/blob/develop/LICENSE
   title: PortainerCE API
-  version: 2.45.2
+  version: 2.45.3
 paths:
   /auth:
     post:
@@ -10374,12 +10374,8 @@ paths:
           schema:
             type: string
       responses:
-        "202":
-          description: Accepted
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/stacks.webhookInvokeResponse"
+        "200":
+          description: Success
         "400":
           description: Invalid request
         "409":
@@ -19384,13 +19380,6 @@ components:
              web:
              image:nginx
           type: string
-      type: object
-    stacks.webhookInvokeResponse:
-      properties:
-        message:
-          type: string
-        stackId:
-          type: integer
       type: object
     stats.ContainerStats:
       properties:

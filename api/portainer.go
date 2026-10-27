@@ -971,37 +971,22 @@ type (
 	// MembershipRole represents the role of a user within a team
 	MembershipRole int
 
-	// OAuthClaimMapping represents a mapping from a token claim to a Portainer team
-	OAuthClaimMapping struct {
-		ClaimValRegex string `json:"ClaimValRegex"`
-		Team          TeamID `json:"Team"`
-	}
-
-	// OAuthTeamMemberships represents OIDC/OAuth group sync mappings
-	OAuthTeamMemberships struct {
-		OAuthClaimName     string              `json:"OAuthClaimName"`
-		OAuthClaimMappings []OAuthClaimMapping `json:"OAuthClaimMappings"`
-	}
-
 	// OAuthSettings represents the settings used to authorize with an authorization server
 	OAuthSettings struct {
-		ClientID                    string               `json:"ClientID"`
-		ClientSecret                string               `json:"ClientSecret,omitempty"`
-		AccessTokenURI              string               `json:"AccessTokenURI"`
-		AuthorizationURI            string               `json:"AuthorizationURI"`
-		ResourceURI                 string               `json:"ResourceURI"`
-		RedirectURI                 string               `json:"RedirectURI"`
-		UserIdentifier              string               `json:"UserIdentifier"`
-		Scopes                      string               `json:"Scopes"`
-		OAuthAutoCreateUsers        bool                 `json:"OAuthAutoCreateUsers"`
-		DefaultTeamID               TeamID               `json:"DefaultTeamID"`
-		SSO                         bool                 `json:"SSO"`
-		LogoutURI                   string               `json:"LogoutURI"`
-		KubeSecretKey               []byte               `json:"KubeSecretKey"`
-		AuthStyle                   oauth2.AuthStyle     `json:"AuthStyle"`
-		HideInternalAuth            bool                 `json:"HideInternalAuth"`
-		OAuthAutoMapTeamMemberships bool                 `json:"OAuthAutoMapTeamMemberships"`
-		TeamMemberships             OAuthTeamMemberships `json:"TeamMemberships"`
+		ClientID             string           `json:"ClientID"`
+		ClientSecret         string           `json:"ClientSecret,omitempty"`
+		AccessTokenURI       string           `json:"AccessTokenURI"`
+		AuthorizationURI     string           `json:"AuthorizationURI"`
+		ResourceURI          string           `json:"ResourceURI"`
+		RedirectURI          string           `json:"RedirectURI"`
+		UserIdentifier       string           `json:"UserIdentifier"`
+		Scopes               string           `json:"Scopes"`
+		OAuthAutoCreateUsers bool             `json:"OAuthAutoCreateUsers"`
+		DefaultTeamID        TeamID           `json:"DefaultTeamID"`
+		SSO                  bool             `json:"SSO"`
+		LogoutURI            string           `json:"LogoutURI"`
+		KubeSecretKey        []byte           `json:"KubeSecretKey"`
+		AuthStyle            oauth2.AuthStyle `json:"AuthStyle"`
 	}
 
 	// Pair defines a key/value string pair
@@ -1192,49 +1177,6 @@ type (
 		AsyncMode bool `json:"AsyncMode,omitempty" example:"false"`
 	}
 
-	S3BackupSettings struct {
-		AccessKeyID      string `json:"accessKeyID"`
-		SecretAccessKey  string `json:"secretAccessKey"`
-		Region           string `json:"region"`
-		BucketName       string `json:"bucketName"`
-		Password         string `json:"password"`
-		CronRule         string `json:"cronRule"`
-		S3CompatibleHost string `json:"s3CompatibleHost"`
-	}
-
-	BackupStatus struct {
-		Failed              bool            `json:"Failed"`
-		TimestampUTC        string          `json:"TimestampUTC"`
-		State               string          `json:"state"`
-		LatestTrigger       string          `json:"latestTrigger,omitempty"`
-		RunningTrigger      string          `json:"runningTrigger,omitempty"`
-		LatestErrorCategory string          `json:"latestErrorCategory,omitempty"`
-		LatestErrorMessage  string          `json:"latestErrorMessage,omitempty"`
-		History             []BackupAttempt `json:"history"`
-		HistoryAvailable    bool            `json:"historyAvailable"`
-		Schedule            BackupSchedule  `json:"schedule"`
-	}
-
-	BackupSchedule struct {
-		Enabled       bool   `json:"enabled"`
-		State         string `json:"state"`
-		NextRunUTC    string `json:"nextRunUTC,omitempty"`
-		TimezoneState string `json:"timezoneState"`
-		Timezone      string `json:"timezone,omitempty"`
-	}
-
-	// BackupAttempt stores the safe summary of one completed S3 export.
-	BackupAttempt struct {
-		ID               int       `json:"id"`
-		Trigger          string    `json:"trigger"`
-		StartedAtUTC     time.Time `json:"startedAtUTC"`
-		CompletedAtUTC   time.Time `json:"completedAtUTC"`
-		DurationMS       int64     `json:"durationMS"`
-		Outcome          string    `json:"outcome"`
-		ErrorCategory    string    `json:"errorCategory,omitempty"`
-		SafeErrorMessage string    `json:"safeErrorMessage,omitempty"`
-	}
-
 	// Settings represents the application settings
 	Settings struct {
 		// URL to a logo that will be displayed on the login page as well as on top of the sidebar. Will use default Portainer logo when value is empty string
@@ -1247,7 +1189,6 @@ type (
 		LDAPSettings         LDAPSettings                  `json:"LDAPSettings"`
 		OAuthSettings        OAuthSettings                 `json:"OAuthSettings"`
 		FeatureFlagSettings  map[featureflags.Feature]bool `json:"FeatureFlagSettings"`
-		S3BackupSettings     S3BackupSettings              `json:"S3BackupSettings"`
 		// The interval in which environment(endpoint) snapshots are created
 		SnapshotInterval string `json:"SnapshotInterval" example:"5m"`
 		// URL to the templates that will be displayed in the UI when navigating to App Templates
@@ -1637,6 +1578,20 @@ type (
 		Token               string
 	}
 
+	// TokenScope is the API surface a token is allowed to reach.
+	TokenScope string
+
+	// ScopedTokenData is the identity a token carries, together with the
+	// restrictions the token itself places on where that identity may be used.
+	ScopedTokenData struct {
+		*TokenData
+
+		Scope TokenScope
+		// EndpointID is the single environment a kubeconfig-scoped token may reach.
+		// UnscopedToken means unrestricted.
+		EndpointID EndpointID
+	}
+
 	// TunnelDetails represents information associated to a tunnel
 	TunnelDetails struct {
 		Status       string
@@ -1658,11 +1613,10 @@ type (
 		Username string `json:"Username" example:"bob" validate:"required"`
 		Password string `json:"Password,omitempty" swaggerignore:"true"`
 		// User role (1 for administrator account and 2 for regular account)
-		Role            UserRole          `json:"Role" example:"1" validate:"required"`
-		TokenIssueAt    int64             `json:"TokenIssueAt" example:"1"`
-		ThemeSettings   UserThemeSettings `json:"ThemeSettings"`
-		UseCache        bool              `json:"UseCache" example:"true"`
-		UserHasPassword bool              `json:"UserHasPassword"`
+		Role          UserRole          `json:"Role" example:"1" validate:"required"`
+		TokenIssueAt  int64             `json:"TokenIssueAt" example:"1"`
+		ThemeSettings UserThemeSettings `json:"ThemeSettings"`
+		UseCache      bool              `json:"UseCache" example:"true"`
 
 		// Deprecated fields
 
@@ -1923,8 +1877,9 @@ type (
 	// JWTService represents a service for managing JWT tokens
 	JWTService interface {
 		GenerateToken(data *TokenData) (string, time.Time, error)
-		GenerateTokenForKubeconfig(data *TokenData) (string, error)
-		ParseAndVerifyToken(token string) (*TokenData, string, time.Time, error)
+		GenerateTokenForKubeconfig(data *TokenData, endpointID EndpointID) (string, error)
+		GenerateTokensForKubeconfig(data *TokenData, endpointIDs []EndpointID) (map[EndpointID]string, error)
+		ParseAndVerifyToken(token string) (*ScopedTokenData, string, time.Time, error)
 		ParseAndVerifySessionToken(token string) (*TokenData, string, time.Time, error)
 		SetUserSessionDuration(userSessionDuration time.Duration)
 	}
@@ -2145,7 +2100,7 @@ type (
 
 	// OAuthService represents a service used to authenticate users using OAuth
 	OAuthService interface {
-		Authenticate(ctx context.Context, code string, configuration *OAuthSettings) (string, map[string]any, error)
+		Authenticate(ctx context.Context, code string, configuration *OAuthSettings) (string, error)
 	}
 
 	// ReverseTunnelService represents a service used to manage reverse tunnel connections.
@@ -2183,8 +2138,16 @@ type (
 )
 
 const (
+	DefaultTokenScope    TokenScope = "default"
+	KubeconfigTokenScope TokenScope = "kubeconfig"
+)
+
+// UnscopedToken marks a token that is not confined to a single environment.
+const UnscopedToken = 0
+
+const (
 	// APIVersion is the version number of the Portainer API
-	APIVersion = "2.45.2"
+	APIVersion = "2.45.3"
 	// Support annotation for the API version ("STS" for Short-Term Support or "LTS" for Long-Term Support)
 	APIVersionSupport = "LTS"
 	// Edition is what this edition of Portainer is called
@@ -2548,8 +2511,6 @@ const (
 	_ WebhookType = iota
 	// ServiceWebhook is a webhook for restarting a docker service
 	ServiceWebhook
-	// ContainerWebhook is a webhook for recreating a docker container
-	ContainerWebhook
 )
 
 const (
