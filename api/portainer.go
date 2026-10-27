@@ -1177,6 +1177,49 @@ type (
 		AsyncMode bool `json:"AsyncMode,omitempty" example:"false"`
 	}
 
+	S3BackupSettings struct {
+		AccessKeyID      string `json:"accessKeyID"`
+		SecretAccessKey  string `json:"secretAccessKey"`
+		Region           string `json:"region"`
+		BucketName       string `json:"bucketName"`
+		Password         string `json:"password"`
+		CronRule         string `json:"cronRule"`
+		S3CompatibleHost string `json:"s3CompatibleHost"`
+	}
+
+	BackupStatus struct {
+		Failed              bool            `json:"Failed"`
+		TimestampUTC        string          `json:"TimestampUTC"`
+		State               string          `json:"state"`
+		LatestTrigger       string          `json:"latestTrigger,omitempty"`
+		RunningTrigger      string          `json:"runningTrigger,omitempty"`
+		LatestErrorCategory string          `json:"latestErrorCategory,omitempty"`
+		LatestErrorMessage  string          `json:"latestErrorMessage,omitempty"`
+		History             []BackupAttempt `json:"history"`
+		HistoryAvailable    bool            `json:"historyAvailable"`
+		Schedule            BackupSchedule  `json:"schedule"`
+	}
+
+	BackupSchedule struct {
+		Enabled       bool   `json:"enabled"`
+		State         string `json:"state"`
+		NextRunUTC    string `json:"nextRunUTC,omitempty"`
+		TimezoneState string `json:"timezoneState"`
+		Timezone      string `json:"timezone,omitempty"`
+	}
+
+	// BackupAttempt stores the safe summary of one completed S3 export.
+	BackupAttempt struct {
+		ID               int       `json:"id"`
+		Trigger          string    `json:"trigger"`
+		StartedAtUTC     time.Time `json:"startedAtUTC"`
+		CompletedAtUTC   time.Time `json:"completedAtUTC"`
+		DurationMS       int64     `json:"durationMS"`
+		Outcome          string    `json:"outcome"`
+		ErrorCategory    string    `json:"errorCategory,omitempty"`
+		SafeErrorMessage string    `json:"safeErrorMessage,omitempty"`
+	}
+
 	// Settings represents the application settings
 	Settings struct {
 		// URL to a logo that will be displayed on the login page as well as on top of the sidebar. Will use default Portainer logo when value is empty string
@@ -1189,6 +1232,7 @@ type (
 		LDAPSettings         LDAPSettings                  `json:"LDAPSettings"`
 		OAuthSettings        OAuthSettings                 `json:"OAuthSettings"`
 		FeatureFlagSettings  map[featureflags.Feature]bool `json:"FeatureFlagSettings"`
+		S3BackupSettings     S3BackupSettings              `json:"S3BackupSettings"`
 		// The interval in which environment(endpoint) snapshots are created
 		SnapshotInterval string `json:"SnapshotInterval" example:"5m"`
 		// URL to the templates that will be displayed in the UI when navigating to App Templates
