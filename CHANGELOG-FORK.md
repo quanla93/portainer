@@ -2,6 +2,12 @@
 
 This file tracks changes specific to the `quanla93/portainer` CE fork. Upstream Portainer release notes remain authoritative for changes not listed here.
 
+## 2.45.3-ce-r2.2
+
+### Fixes
+
+- Restore the backend backup models required by the Backup Health Center so the Go server build completes.
+
 ## 2.45.3-ce-r2.1
 
 ### Changes
