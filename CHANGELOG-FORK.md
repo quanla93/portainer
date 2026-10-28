@@ -2,6 +2,12 @@
 
 This file tracks changes specific to the `quanla93/portainer` CE fork. Upstream Portainer release notes remain authoritative for changes not listed here.
 
+## 2.45.3-ce-r2.3
+
+### Fixes
+
+- Restore fork-specific API customizations required by the CE build, including OAuth team mappings, local-password visibility, container webhooks, and internal-auth settings.
+
 ## 2.45.3-ce-r2.2
 
 ### Fixes
